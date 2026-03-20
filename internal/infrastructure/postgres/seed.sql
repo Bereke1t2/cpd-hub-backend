@@ -103,7 +103,8 @@ ON CONFLICT (contest_id, rank) DO NOTHING;
 INSERT INTO info (title, description) VALUES
 ('System Maintenance', 'Scheduled maintenance on Feb 20th from 2-4 AM'),
 ('New Feature', 'Problem tagging and contest subscriptions added'),
-('Privacy Update', 'Updated privacy policy — minor changes')
+('Privacy Update', 'Updated privacy policy — minor changes'),
+('CPD Tutorial Upate', 'Todays tutorial has been postpone to the next weekend!')
 ON CONFLICT (title) DO NOTHING;
 
 -- Activity feed (recent actions)
