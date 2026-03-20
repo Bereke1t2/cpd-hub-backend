@@ -28,7 +28,8 @@ INSERT INTO users (username, full_name, rating, bio, avatar_url) VALUES
 ('karen', 'Karen O''Neill', 1525, 'Fullstack dev', 'https://example.com/avatar/karen.png'),
 ('leo', 'Leo Martinez', 1370, 'New to competitive programming', 'https://example.com/avatar/leo.png'),
 ('mia', 'Mia Chen', 1900, 'Problemsetter', 'https://example.com/avatar/mia.png'),
-('nick', 'Nick Brown', 1200, 'Beginners', 'https://example.com/avatar/nick.png')
+('nick', 'Nick Brown', 1200, 'Beginners', 'https://example.com/avatar/nick.png'),
+('dudu', 'dudu lulu', 1200, 'developer', 'https://example.com/avatar/dudu.png')
 ON CONFLICT (username) DO NOTHING;
 
 -- Profiles (lightweight) - mirror some users
