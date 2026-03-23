@@ -26,7 +26,7 @@ type Handler interface {
 	Router() http.Handler
 	Login(*gin.Context)
 	Signup(*gin.Context)
-
+	GetProblem(*gin.Context)
 	GetProblems(*gin.Context)
 	GetDailyProblem(*gin.Context)
 	LikeProblem(*gin.Context)
@@ -104,6 +104,7 @@ func (h *handlerImpl) GetInfo(c *gin.Context)               { h.infoList(c) }
 // helper: shape domain.Problem into API-friendly map with aliases expected by client
 func apiProblem(p *domain.Problem) gin.H {
 	return gin.H{
+		"id":                   p.ID,
 		"problemId":            p.ID,
 		"title":                p.Title,
 		"difficulty":           p.Difficulty,
@@ -441,4 +442,18 @@ func (h *handlerImpl) infoList(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, []domain.Info{{Title: "System Maintenance", Description: "Scheduled maintenance on Feb 20th from 2-4 AM"}})
+}
+
+func (h *handlerImpl) GetProblem(c *gin.Context) {
+	id := c.Param("id")
+	if h.repos.Problem != nil {
+		p, err := h.repos.Problem.GetById(id)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": "not found", "error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, apiProblem(p))
+		return
+	}
+	c.JSON(http.StatusOK, apiProblem(&domain.Problem{ID: id, Title: "Sample Problem", Difficulty: "Medium", TopicTags: []string{"Example"}, Likes: 100, Dislikes: 5, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: false}))
 }
