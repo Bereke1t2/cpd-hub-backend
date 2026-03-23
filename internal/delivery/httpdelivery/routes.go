@@ -35,6 +35,7 @@ func RegisterRoutes(r *gin.Engine, h Handler, auth gin.HandlerFunc, loadUser gin
 	// Problems
 	protected.GET("/problems", h.GetProblems)
 	protected.GET("/problems/daily", h.GetDailyProblem)
+	protected.GET("/problems/:id", h.GetProblem)
 	protected.POST("/problems/:id/like", h.LikeProblem)
 	protected.POST("/problems/:id/dislike", h.DislikeProblem)
 	protected.POST("/problems/:id/solve", h.SolveProblem)
