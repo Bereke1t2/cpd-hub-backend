@@ -16,6 +16,7 @@ type Problem struct {
 type ProblemRepository interface {
 	List() ([]*Problem, error)
 	GetDaily() (*Problem, error)
+	GetById(id string) (*Problem, error)
 	Like(id string) error
 	Dislike(id string) error
 	MarkSolved(id string) error

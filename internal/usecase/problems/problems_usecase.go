@@ -34,3 +34,7 @@ func (u *Usecase) MarkSolved(id string) error {
 func (u *Usecase) UnmarkSolved(id string) error {
 	return u.repo.UnmarkSolved(id)
 }
+
+func (u *Usecase) GetById(id string)  (*domain.Problem, error){
+	return u.repo.GetById(id)
+}
