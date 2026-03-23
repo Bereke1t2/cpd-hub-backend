@@ -41,6 +41,22 @@ func (r *ProblemsRepositoryDB) List() ([]*domain.Problem, error) {
 	return out, nil
 }
 
+func (r *ProblemsRepositoryDB) GetById(id string) (*domain.Problem , error){
+	if r.client == nil || r.client.Pool == nil {
+		return nil, fmt.Errorf("no db client")
+	}
+	ctx := context.Background()
+	row := r.client.Pool.QueryRow(ctx, "SELECT id, title, difficulty, topic_tags, likes, dislikes, deep_link, is_liked, is_disliked, solved FROM problems WHERE id=$1", id)
+	var p domain.Problem
+	var tags *string
+	if err := row.Scan(&p.ID, &p.Title, &p.Difficulty, &tags, &p.Likes, &p.Dislikes, &p.DeepLink, &p.IsLiked, &p.IsDisliked, &p.Solved); err != nil {
+		return nil, err
+	}
+	p.TopicTags = parseTags(tags)
+	return &p , nil
+ 
+}
+
 func (r *ProblemsRepositoryDB) GetDaily() (*domain.Problem, error) {
 	// For simplicity return the first problem as daily
 	list, err := r.List()
@@ -58,7 +74,9 @@ func (r *ProblemsRepositoryDB) Like(id string) error {
 	ct, err := r.client.Pool.Exec(ctx, `
 		UPDATE problems SET
 			is_liked = CASE WHEN COALESCE(is_liked,false) THEN false ELSE true END,
-			likes = CASE WHEN COALESCE(is_liked,false) THEN GREATEST(COALESCE(likes,0)-1,0) ELSE COALESCE(likes,0)+1 END
+			likes = CASE WHEN COALESCE(is_liked,false) THEN GREATEST(COALESCE(likes,0)-1,0) ELSE COALESCE(likes,0)+1 END,
+			is_disliked = false,
+			dislikes = CASE WHEN COALESCE(is_disliked,false) THEN GREATEST(COALESCE(dislikes,0)-1,0) ELSE COALESCE(dislikes,0) END
 		WHERE id=$1
 	`, id)
 	if err != nil {
@@ -78,7 +96,9 @@ func (r *ProblemsRepositoryDB) Dislike(id string) error {
 	ct, err := r.client.Pool.Exec(ctx, `
 		UPDATE problems SET
 			is_disliked = CASE WHEN COALESCE(is_disliked,false) THEN false ELSE true END,
-			dislikes = CASE WHEN COALESCE(is_disliked,false) THEN GREATEST(COALESCE(dislikes,0)-1,0) ELSE COALESCE(dislikes,0)+1 END
+			dislikes = CASE WHEN COALESCE(is_disliked,false) THEN GREATEST(COALESCE(dislikes,0)-1,0) ELSE COALESCE(dislikes,0)+1 END,
+			is_liked = false,
+			likes = CASE WHEN COALESCE(is_liked,false) THEN GREATEST(COALESCE(likes,0)-1,0) ELSE COALESCE(likes,0) END
 		WHERE id=$1
 	`, id)
 	if err != nil {
