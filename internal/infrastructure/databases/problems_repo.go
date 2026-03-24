@@ -41,7 +41,7 @@ func (r *ProblemsRepositoryDB) List() ([]*domain.Problem, error) {
 	return out, nil
 }
 
-func (r *ProblemsRepositoryDB) GetById(id string) (*domain.Problem , error){
+func (r *ProblemsRepositoryDB) GetById(id string) (*domain.Problem, error) {
 	if r.client == nil || r.client.Pool == nil {
 		return nil, fmt.Errorf("no db client")
 	}
@@ -53,8 +53,8 @@ func (r *ProblemsRepositoryDB) GetById(id string) (*domain.Problem , error){
 		return nil, err
 	}
 	p.TopicTags = parseTags(tags)
-	return &p , nil
- 
+	return &p, nil
+
 }
 
 func (r *ProblemsRepositoryDB) GetDaily() (*domain.Problem, error) {

@@ -27,5 +27,6 @@ type LeaderboardEntry struct {
 	Rating         int      `json:"rating"`
 	Score          int      `json:"score"`
 	Penalty        int      `json:"penalty"`
+	SolvedCount    int      `json:"solvedCount"`
 	ProblemsSolved []string `json:"problemsSolved"`
 }

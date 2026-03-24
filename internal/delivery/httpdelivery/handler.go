@@ -2,11 +2,15 @@ package httpdelivery
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
-	"time"
+
+	// "time"
 
 	"github.com/bereket/cpd-hub-backend/internal/domain"
+	"github.com/bereket/cpd-hub-backend/internal/infrastructure/external"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/security"
+	contestsuc "github.com/bereket/cpd-hub-backend/internal/usecase/contests"
 	"github.com/gin-gonic/gin"
 )
 
@@ -347,20 +351,65 @@ func (h *handlerImpl) problemsUnsolve(c *gin.Context) {
 
 // --- Contests ---
 func (h *handlerImpl) contestsList(c *gin.Context) {
-	if h.repos.Contest != nil {
-		list, err := h.repos.Contest.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list contests"})
-			return
-		}
-		c.JSON(http.StatusOK, list)
+	// create kontests client and usecase to fetch platform contests and merge with repo
+	client := external.NewKontestsClient()
+	uc := contestsuc.NewWithClient(h.repos.Contest, client)
+	list, err := uc.List()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list contests", "message": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, []domain.Contest{{ID: "c1", Title: "Global Round #26", ContestURL: "https://...", StartTime: time.Now(), Duration: "2h 30m", Platform: "CPD Hub", NumberOfProblems: 6, NumberOfContestants: 1240, Date: "Feb 15, 2026", IsPast: false, IsParticipating: true}})
+	c.JSON(http.StatusOK, list)
 }
 
 func (h *handlerImpl) contestLeaderboard(c *gin.Context) {
 	id := c.Param("id")
+	// If this looks like a Codeforces contest id produced by our Fetch (e.g. "codeforces-1932"), fetch standings from Codeforces API.
+	if strings.HasPrefix(strings.ToLower(id), "codeforces-") {
+		parts := strings.SplitN(id, "-", 2)
+		if len(parts) != 2 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid contest id"})
+			return
+		}
+		contestIDStr := parts[1]
+		contestID, err := strconv.Atoi(contestIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid codeforces contest id", "message": err.Error()})
+			return
+		}
+
+		// optional query params: from, count, showUnofficial
+		fromStr := c.DefaultQuery("from", "1")
+		countStr := c.DefaultQuery("count", "50")
+		showUnofficialStr := c.DefaultQuery("showUnofficial", "false")
+		fromI, _ := strconv.Atoi(fromStr)
+		countI, _ := strconv.Atoi(countStr)
+		showUnofficial := strings.EqualFold(showUnofficialStr, "true")
+
+		client := external.NewKontestsClient()
+		rows, _, err := client.FetchContestStandings(contestID, fromI, countI, showUnofficial)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch standings from codeforces", "message": err.Error()})
+			return
+		}
+
+		// map to domain.LeaderboardEntry
+		out := make([]*domain.LeaderboardEntry, 0, len(rows))
+		for _, r := range rows {
+			out = append(out, &domain.LeaderboardEntry{
+				Rank:           r.Rank,
+				Username:       r.Handle,
+				Rating:         0,
+				Score:          int(r.Points),
+				Penalty:        r.Penalty,
+				ProblemsSolved: []string{},
+			})
+		}
+		c.JSON(http.StatusOK, out)
+		return
+	}
+
+	// Fallback to repo-provided leaderboard
 	if h.repos.Contest != nil {
 		lb, err := h.repos.Contest.Leaderboard(id)
 		if err != nil {

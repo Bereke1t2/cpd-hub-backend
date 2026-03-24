@@ -58,3 +58,31 @@ func (r *UsersRepositoryDB) List() ([]*domain.User, error) {
 	}
 	return out, nil
 }
+
+// UpdateProfile updates both users and profiles table when applicable.
+func (r *UsersRepositoryDB) UpdateProfile(user *domain.User) error {
+	if r.client == nil || r.client.Pool == nil {
+		return fmt.Errorf("no db client")
+	}
+	ctx := context.Background()
+	_, err := r.client.Pool.Exec(ctx, "UPDATE users SET full_name=$2 WHERE username=$1", user.Username, user.FullName)
+	if err != nil {
+		return err
+	}
+	_, err = r.client.Pool.Exec(ctx, "UPDATE profiles SET bio=$2, avatar_url=$3, rating=$4 WHERE username=$1", user.Username, user.Bio, user.AvatarURL, user.Rating)
+	return err
+}
+
+// DeleteUser removes a user and related profile.
+func (r *UsersRepositoryDB) DeleteUser(username string) error {
+	if r.client == nil || r.client.Pool == nil {
+		return fmt.Errorf("no db client")
+	}
+	ctx := context.Background()
+	_, err := r.client.Pool.Exec(ctx, "DELETE FROM profiles WHERE username=$1", username)
+	if err != nil {
+		return err
+	}
+	_, err = r.client.Pool.Exec(ctx, "DELETE FROM users WHERE username=$1", username)
+	return err
+}
