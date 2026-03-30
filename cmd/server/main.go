@@ -70,7 +70,6 @@ func main() {
 
 	// Wire DB-backed repositories
 	repos := httpdelivery.Repos{
-		User:     databases.NewUsersRepositoryDB(client),
 		Auth:     postgres.NewAuthRepositoryPG(client),
 		Problem:  databases.NewProblemsRepositoryDB(client),
 		Contest:  databases.NewContestsRepositoryDB(client),

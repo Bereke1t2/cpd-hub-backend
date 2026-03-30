@@ -21,6 +21,36 @@ type SocialLink struct {
 	Handle   string `json:"handle"`
 }
 
+// Heatmap entry for profile activity
+type HeatmapEntry struct {
+	Date       string `json:"date"`
+	SolveCount int    `json:"solveCount"`
+}
+
+// Rating history entry
+type RatingEntry struct {
+	Date   string `json:"date"`
+	Rating int    `json:"rating"`
+}
+
+// Attendance entry
+type AttendanceEntry struct {
+	Date   string `json:"date"`
+	Status string `json:"status"`
+}
+
+// Submission entry
+type Submission struct {
+	ID           string `json:"id"`
+	ProblemID    string `json:"problemId"`
+	ProblemTitle string `json:"problemTitle"`
+	Status       string `json:"status"`
+	Language     string `json:"language"`
+	ExecutionTime string `json:"executionTime,omitempty"`
+	MemoryUsed    string `json:"memoryUsed,omitempty"`
+	Timestamp     string `json:"timestamp"`
+}
+
 // Profile repository
 type ProfileRepository interface {
 	ListUsers() ([]*UserProfile, error)
@@ -28,4 +58,10 @@ type ProfileRepository interface {
 	CreateUser(user *UserProfile) error
 	UpdateUser(user *UserProfile) error
 	DeleteUser(username string) error
+
+	// Profile related data
+	GetProfileHeatmap(username string) ([]HeatmapEntry, error)
+	GetProfileRatingHistory(username string) ([]RatingEntry, error)
+	GetProfileAttendance(username string) ([]AttendanceEntry, error)
+	GetProfileSubmissions(username string) ([]Submission, error)
 }
