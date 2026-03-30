@@ -16,7 +16,6 @@ import (
 
 // Repos contains optional repository implementations that handlers may call.
 type Repos struct {
-	User     domain.UserRepository
 	Auth     domain.AuthRepository
 	Problem  domain.ProblemRepository
 	Contest  domain.ContestRepository
@@ -166,7 +165,7 @@ func (h *handlerImpl) authSignup(c *gin.Context) {
 		c.JSON(http.StatusCreated, gin.H{"token": res.Token, "user": userMap})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"token": "sample-token", "user": gin.H{"username": "newuser", "fullName": req.FullName, "email": req.Email}})
+	c.JSON(http.StatusInternalServerError, gin.H{"token": "sample-token", "user": gin.H{"username": "newuser", "fullName": req.FullName, "email": req.Email}})
 }
 
 // --- Problems ---
@@ -184,7 +183,7 @@ func (h *handlerImpl) problemsList(c *gin.Context) {
 		c.JSON(http.StatusOK, out)
 		return
 	}
-	c.JSON(http.StatusOK, []gin.H{apiProblem(&domain.Problem{ID: "p1", Title: "Two Sum", Difficulty: "Easy", TopicTags: []string{"Array", "Hash Table"}, Likes: 245, Dislikes: 12, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: true})})
+	c.JSON(http.StatusInternalServerError, []gin.H{apiProblem(&domain.Problem{ID: "p1", Title: "Two Sum", Difficulty: "Easy", TopicTags: []string{"Array", "Hash Table"}, Likes: 245, Dislikes: 12, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: true})})
 }
 
 func (h *handlerImpl) problemsDaily(c *gin.Context) {
@@ -197,7 +196,7 @@ func (h *handlerImpl) problemsDaily(c *gin.Context) {
 		c.JSON(http.StatusOK, apiProblem(p))
 		return
 	}
-	c.JSON(http.StatusOK, apiProblem(&domain.Problem{ID: "dp1", Title: "Longest Common Subsequence", Difficulty: "Medium", TopicTags: []string{"Dynamic Programming", "String"}, Likes: 342, Dislikes: 18, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: false}))
+	c.JSON(http.StatusInternalServerError, apiProblem(&domain.Problem{ID: "dp1", Title: "Longest Common Subsequence", Difficulty: "Medium", TopicTags: []string{"Dynamic Programming", "String"}, Likes: 342, Dislikes: 18, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: false}))
 }
 
 func (h *handlerImpl) problemsLike(c *gin.Context) {
@@ -235,7 +234,7 @@ func (h *handlerImpl) problemsLike(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
 }
 
 func (h *handlerImpl) problemsDislike(c *gin.Context) {
@@ -272,7 +271,7 @@ func (h *handlerImpl) problemsDislike(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
 }
 
 func (h *handlerImpl) problemsSolve(c *gin.Context) {
@@ -309,7 +308,7 @@ func (h *handlerImpl) problemsSolve(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
 }
 
 func (h *handlerImpl) problemsUnsolve(c *gin.Context) {
@@ -346,7 +345,7 @@ func (h *handlerImpl) problemsUnsolve(c *gin.Context) {
 			return
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
 }
 
 // --- Contests ---
@@ -419,7 +418,7 @@ func (h *handlerImpl) contestLeaderboard(c *gin.Context) {
 		c.JSON(http.StatusOK, lb)
 		return
 	}
-	c.JSON(http.StatusOK, []domain.LeaderboardEntry{{Rank: 1, Username: "tourist", Rating: 3800, Score: 600, Penalty: 45, ProblemsSolved: []string{"A", "B", "C", "D", "E", "F"}}})
+	c.JSON(http.StatusInternalServerError, []domain.LeaderboardEntry{{Rank: 1, Username: "tourist", Rating: 3800, Score: 600, Penalty: 45, ProblemsSolved: []string{"A", "B", "C", "D", "E", "F"}}})
 }
 
 // --- Profiles / Users ---
@@ -427,7 +426,7 @@ func (h *handlerImpl) listUsers(c *gin.Context) {
 	if h.repos.Profile != nil {
 		list, err := h.repos.Profile.ListUsers()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list users"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list users", "message": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK, list)
@@ -451,19 +450,60 @@ func (h *handlerImpl) getProfile(c *gin.Context) {
 }
 
 func (h *handlerImpl) profileHeatmap(c *gin.Context) {
-	c.JSON(http.StatusOK, []map[string]interface{}{{"date": "2026-02-01", "solveCount": 0}, {"date": "2026-02-02", "solveCount": 3}})
+	username := c.Param("username")
+	if h.repos.Profile != nil {
+		if hm, err := h.repos.Profile.GetProfileHeatmap(username); err == nil {
+			c.JSON(http.StatusOK, hm)
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get heatmap", "message": err.Error()})
+			return
+		}
+	}
+	// Fallback sample data
+	c.JSON(http.StatusOK, []domain.HeatmapEntry{{Date: "2026-02-01", SolveCount: 0}, {Date: "2026-02-02", SolveCount: 3}})
 }
 
 func (h *handlerImpl) profileRatingHistory(c *gin.Context) {
-	c.JSON(http.StatusOK, []map[string]interface{}{{"date": "2025-08-01", "rating": 1000}, {"date": "2026-01-01", "rating": 1750}})
+	username := c.Param("username")
+	if h.repos.Profile != nil {
+		if rh, err := h.repos.Profile.GetProfileRatingHistory(username); err == nil {
+			c.JSON(http.StatusOK, rh)
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get rating history", "message": err.Error()})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, []domain.RatingEntry{{Date: "2025-08-01", Rating: 1000}, {Date: "2026-01-01", Rating: 1750}})
 }
 
 func (h *handlerImpl) profileAttendance(c *gin.Context) {
-	c.JSON(http.StatusOK, []map[string]string{{"date": "2026-02-01", "status": "Present"}, {"date": "2026-02-02", "status": "Absent"}})
+	username := c.Param("username")
+	if h.repos.Profile != nil {
+		if att, err := h.repos.Profile.GetProfileAttendance(username); err == nil {
+			c.JSON(http.StatusOK, att)
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get attendance", "message": err.Error()})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, []domain.AttendanceEntry{{Date: "2026-02-01", Status: "Present"}, {Date: "2026-02-02", Status: "Absent"}})
 }
 
 func (h *handlerImpl) profileSubmissions(c *gin.Context) {
-	c.JSON(http.StatusOK, []map[string]interface{}{{"id": "s1", "problemId": "p1", "problemTitle": "Two Sum", "status": "Accepted", "language": "Python", "executionTime": "45ms", "memoryUsed": "14.2MB", "timestamp": "2 hours ago"}})
+	username := c.Param("username")
+	if h.repos.Profile != nil {
+		if subs, err := h.repos.Profile.GetProfileSubmissions(username); err == nil {
+			c.JSON(http.StatusOK, subs)
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get submissions", "message": err.Error()})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, []domain.Submission{{ID: "s1", ProblemID: "p1", ProblemTitle: "Two Sum", Status: "Accepted", Language: "Python", ExecutionTime: "45ms", MemoryUsed: "14.2MB", Timestamp: "2026-03-01T09:00:00Z"}})
 }
 
 // --- Activity & Info ---
@@ -477,7 +517,7 @@ func (h *handlerImpl) activityList(c *gin.Context) {
 		c.JSON(http.StatusOK, list)
 		return
 	}
-	c.JSON(http.StatusOK, []domain.Activity{{ID: "a1", Username: "abel", Action: "solved 'Two Sum' in 3 min", Type: "Solve", Timestamp: "2 min ago"}})
+	c.JSON(http.StatusInternalServerError, []domain.Activity{{ID: "a1", Username: "abel", Action: "solved 'Two Sum' in 3 min", Type: "Solve", Timestamp: "2 min ago"}})
 }
 
 func (h *handlerImpl) infoList(c *gin.Context) {
@@ -490,7 +530,7 @@ func (h *handlerImpl) infoList(c *gin.Context) {
 		c.JSON(http.StatusOK, list)
 		return
 	}
-	c.JSON(http.StatusOK, []domain.Info{{Title: "System Maintenance", Description: "Scheduled maintenance on Feb 20th from 2-4 AM"}})
+	c.JSON(http.StatusInternalServerError, []domain.Info{{Title: "System Maintenance", Description: "Scheduled maintenance on Feb 20th from 2-4 AM"}})
 }
 
 func (h *handlerImpl) GetProblem(c *gin.Context) {
@@ -504,5 +544,5 @@ func (h *handlerImpl) GetProblem(c *gin.Context) {
 		c.JSON(http.StatusOK, apiProblem(p))
 		return
 	}
-	c.JSON(http.StatusOK, apiProblem(&domain.Problem{ID: id, Title: "Sample Problem", Difficulty: "Medium", TopicTags: []string{"Example"}, Likes: 100, Dislikes: 5, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: false}))
+	c.JSON(http.StatusInternalServerError, apiProblem(&domain.Problem{ID: id, Title: "Sample Problem", Difficulty: "Medium", TopicTags: []string{"Example"}, Likes: 100, Dislikes: 5, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: false}))
 }
