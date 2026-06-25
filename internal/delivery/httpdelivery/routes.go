@@ -47,6 +47,8 @@ func RegisterRoutes(r *gin.Engine, h Handler, auth gin.HandlerFunc, loadUser gin
 
 	// Contests
 	protected.GET("/contests", h.GetContests)
+	protected.POST("/contests/:id/participate", h.ParticipateContest)
+	protected.DELETE("/contests/:id/participate", h.UnparticipateContest)
 	protected.GET("/contests/:id/leaderboard", h.GetContestLeaderboard)
 
 	// Users & Profiles

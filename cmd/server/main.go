@@ -5,11 +5,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/bereket/cpd-hub-backend/internal/delivery/httpdelivery"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/config"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/databases"
+	"github.com/bereket/cpd-hub-backend/internal/infrastructure/external"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/postgres"
+	contestsuc "github.com/bereket/cpd-hub-backend/internal/usecase/contests"
 )
 
 // loadDotEnv loads a simple .env file with key=value pairs into process environment.
@@ -69,11 +72,22 @@ func main() {
 		log.Fatalf("migrations failed: %v", err)
 	}
 
+	// Contests infrastructure
+	contestDB := databases.NewContestsRepositoryDB(client)
+	kontestsLive := external.NewKontestsClient()
+	cachedContests := external.NewCachedContests(kontestsLive, contestDB, 15*time.Minute)
+
+	// Background refresher to keep contests snappy
+	external.StartContestsRefresher(ctx, cachedContests, 7*time.Minute)
+
+	// Contests usecase (implements domain.ContestRepository)
+	contestUC := contestsuc.New(contestDB, cachedContests)
+
 	// Wire DB-backed repositories
 	repos := httpdelivery.Repos{
 		Auth:     postgres.NewAuthRepositoryPG(client),
 		Problem:  databases.NewProblemsRepositoryDB(client),
-		Contest:  databases.NewContestsRepositoryDB(client),
+		Contest:  contestUC,
 		Profile:  databases.NewProfileRepositoryDB(client),
 		Activity: databases.NewActivityRepositoryDB(client),
 		Info:     databases.NewInfoRepositoryDB(client),

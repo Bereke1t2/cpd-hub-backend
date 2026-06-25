@@ -1,15 +1,17 @@
 package httpdelivery
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bereket/cpd-hub-backend/internal/domain"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/external"
+	"github.com/bereket/cpd-hub-backend/internal/infrastructure/postgres"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/security"
 	authuc "github.com/bereket/cpd-hub-backend/internal/usecase/auth"
-	contestsuc "github.com/bereket/cpd-hub-backend/internal/usecase/contests"
 	"github.com/gin-gonic/gin"
 )
 
@@ -41,6 +43,8 @@ type Handler interface {
 	UnsolveProblem(*gin.Context)
 
 	GetContests(*gin.Context)
+	ParticipateContest(*gin.Context)
+	UnparticipateContest(*gin.Context)
 	GetContestLeaderboard(*gin.Context)
 
 	GetUsers(*gin.Context)
@@ -56,19 +60,25 @@ type Handler interface {
 
 // handlerImpl is the concrete implementation used here.
 type handlerImpl struct {
-	repos  Repos
-	authUC *authuc.UseCase
-	db     Pinger // optional: used by /readyz to probe the DB; nil → always ready
-	router *gin.Engine
+	repos   Repos
+	authUC  *authuc.UseCase
+	db      *postgres.Client
+	router  *gin.Engine
+	lbCache *external.TTLCache
 }
 
 // NewHandler creates the handler and registers routes.
-func NewHandler(repos Repos, db Pinger, corsOrigins []string) Handler {
-	g := gin.New()
-	g.Use(gin.Logger(), RequestID(), RecoveryJSON(), CORS(corsOrigins))
+func NewHandler(repos Repos, db *postgres.Client, corsOrigins []string) Handler {
+	g := gin.Default()
 
 	authUC := authuc.New(repos.Auth)
-	h := &handlerImpl{repos: repos, authUC: authUC, db: db, router: g}
+	h := &handlerImpl{
+		repos:   repos,
+		authUC:  authUC,
+		db:      db,
+		router:  g,
+		lbCache: external.NewTTLCache(60 * time.Second),
+	}
 
 	g.GET("/healthz", h.Healthz)
 	g.GET("/readyz", h.Readyz)
@@ -123,6 +133,8 @@ func (h *handlerImpl) DislikeProblem(c *gin.Context)        { h.problemsDislike(
 func (h *handlerImpl) SolveProblem(c *gin.Context)          { h.problemsSolve(c) }
 func (h *handlerImpl) UnsolveProblem(c *gin.Context)        { h.problemsUnsolve(c) }
 func (h *handlerImpl) GetContests(c *gin.Context)           { h.contestsList(c) }
+func (h *handlerImpl) ParticipateContest(c *gin.Context)    { h.contestsParticipate(c) }
+func (h *handlerImpl) UnparticipateContest(c *gin.Context)  { h.contestsUnparticipate(c) }
 func (h *handlerImpl) GetContestLeaderboard(c *gin.Context) { h.contestLeaderboard(c) }
 func (h *handlerImpl) GetUsers(c *gin.Context)              { h.listUsers(c) }
 func (h *handlerImpl) GetUserProfile(c *gin.Context)        { h.getProfile(c) }
@@ -287,15 +299,28 @@ func (h *handlerImpl) problemsUnsolve(c *gin.Context) {
 
 // --- Contests ---
 func (h *handlerImpl) contestsList(c *gin.Context) {
-	// create kontests client and usecase to fetch platform contests and merge with repo
-	client := external.NewKontestsClient()
-	uc := contestsuc.NewWithClient(h.repos.Contest, client)
-	list, err := uc.List()
+	list, err := h.repos.Contest.ListForUser(currentUsername(c))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list contests", "message": err.Error()})
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, list)
+	respondOK(c, list)
+}
+
+func (h *handlerImpl) contestsParticipate(c *gin.Context) {
+	if err := h.repos.Contest.Participate(currentUsername(c), c.Param("id")); err != nil {
+		respondError(c, err)
+		return
+	}
+	respondSuccess(c)
+}
+
+func (h *handlerImpl) contestsUnparticipate(c *gin.Context) {
+	if err := h.repos.Contest.Unparticipate(currentUsername(c), c.Param("id")); err != nil {
+		respondError(c, err)
+		return
+	}
+	respondSuccess(c)
 }
 
 func (h *handlerImpl) contestLeaderboard(c *gin.Context) {
@@ -322,10 +347,22 @@ func (h *handlerImpl) contestLeaderboard(c *gin.Context) {
 		countI, _ := strconv.Atoi(countStr)
 		showUnofficial := strings.EqualFold(showUnofficialStr, "true")
 
+		// leaderboard caching
+		cacheKey := fmt.Sprintf("lb:%d:%d:%d:%v", contestID, fromI, countI, showUnofficial)
+		if v, fresh, ok := h.lbCache.Get(cacheKey); ok && fresh {
+			respondOK(c, v)
+			return
+		}
+
 		client := external.NewKontestsClient()
 		rows, _, err := client.FetchContestStandings(contestID, fromI, countI, showUnofficial)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch standings from codeforces", "message": err.Error()})
+			// fallback to stale cache if available
+			if v, _, ok := h.lbCache.Get(cacheKey); ok {
+				respondOK(c, v)
+				return
+			}
+			respondError(c, domain.ErrInternal("could not fetch standings").Wrap(err))
 			return
 		}
 
@@ -333,15 +370,16 @@ func (h *handlerImpl) contestLeaderboard(c *gin.Context) {
 		out := make([]*domain.LeaderboardEntry, 0, len(rows))
 		for _, r := range rows {
 			out = append(out, &domain.LeaderboardEntry{
-				Rank:           r.Rank,
-				Username:       r.Handle,
-				Rating:         0,
-				Score:          int(r.Points),
-				Penalty:        r.Penalty,
-				ProblemsSolved: []string{},
+				Rank:        r.Rank,
+				Username:    r.Handle,
+				Rating:      r.Rating,
+				Score:       int(r.Points),
+				Penalty:     r.Penalty,
+				SolvedCount: r.Solved,
 			})
 		}
-		c.JSON(http.StatusOK, out)
+		h.lbCache.Set(cacheKey, out)
+		respondOK(c, out)
 		return
 	}
 

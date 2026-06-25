@@ -17,8 +17,12 @@ type Contest struct {
 }
 
 type ContestRepository interface {
-	List() ([]*Contest, error)
+	ListForUser(username string) ([]*Contest, error)
+	GetByID(id string) (*Contest, error)
 	Leaderboard(contestID string) ([]*LeaderboardEntry, error)
+
+	Participate(username, contestID string) error
+	Unparticipate(username, contestID string) error
 }
 
 type LeaderboardEntry struct {
