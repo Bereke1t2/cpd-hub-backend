@@ -17,12 +17,13 @@ import (
 
 // Repos contains optional repository implementations that handlers may call.
 type Repos struct {
-	Auth     domain.AuthRepository
-	Problem  domain.ProblemRepository
-	Contest  domain.ContestRepository
-	Profile  domain.ProfileRepository
-	Activity domain.ActivityRepository
-	Info     domain.InfoRepository
+	Auth        domain.AuthRepository
+	Problem     domain.ProblemRepository
+	Contest     domain.ContestRepository
+	Profile     domain.ProfileRepository
+	Activity    domain.ActivityRepository
+	Info        domain.InfoRepository
+	Consistency domain.ConsistencyRepository
 }
 
 // Handler is the interface to be implemented by an HTTP handler.
@@ -56,6 +57,12 @@ type Handler interface {
 
 	GetActivity(*gin.Context)
 	GetInfo(*gin.Context)
+
+	GetStreak(*gin.Context)
+	PutStreak(*gin.Context)
+	GetGoal(*gin.Context)
+	PutGoal(*gin.Context)
+	GetLadders(*gin.Context)
 }
 
 // handlerImpl is the concrete implementation used here.

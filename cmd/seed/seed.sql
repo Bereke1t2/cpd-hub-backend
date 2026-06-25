@@ -176,3 +176,19 @@ INSERT INTO submissions (id, username, problem_id, problem_title, status, langua
   ('s3', 'carol',   'p5', 'Longest Increasing Subsequence', 'Accepted',     'Java',  '200ms', '40MB'),
   ('s4', 'bereket', 'p1', 'Two Sum',                        'Accepted',     'Go',    '32ms',  '12.1MB')
 ON CONFLICT (id) DO NOTHING;
+
+-- ------------------------------------------------------------------
+-- Consistency: Ladders
+-- ------------------------------------------------------------------
+INSERT INTO ladders (id, title, from_rating, to_rating) VALUES
+  ('ladder-1200', 'Div. 2 A Ladder', 0, 1200),
+  ('ladder-1400', 'Div. 2 B Ladder', 1201, 1400)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO ladder_rungs (ladder_id, problem_id, rating, topic_id, ord) VALUES
+  ('ladder-1200', 'p1',  800,  'implementation', 1),
+  ('ladder-1200', 'p2',  900,  'math',           2),
+  ('ladder-1200', 'p3',  1000, 'greedy',         3),
+  ('ladder-1400', 'p4',  1300, 'dp',             1),
+  ('ladder-1400', 'p5',  1400, 'graphs',         2)
+ON CONFLICT (ladder_id, problem_id) DO NOTHING;

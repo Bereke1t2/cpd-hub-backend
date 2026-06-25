@@ -85,12 +85,13 @@ func main() {
 
 	// Wire DB-backed repositories
 	repos := httpdelivery.Repos{
-		Auth:     postgres.NewAuthRepositoryPG(client),
-		Problem:  databases.NewProblemsRepositoryDB(client),
-		Contest:  contestUC,
-		Profile:  databases.NewProfileRepositoryDB(client),
-		Activity: databases.NewActivityRepositoryDB(client),
-		Info:     databases.NewInfoRepositoryDB(client),
+		Auth:        postgres.NewAuthRepositoryPG(client),
+		Problem:     databases.NewProblemsRepositoryDB(client),
+		Contest:     contestUC,
+		Profile:     databases.NewProfileRepositoryDB(client),
+		Activity:    databases.NewActivityRepositoryDB(client),
+		Info:        databases.NewInfoRepositoryDB(client),
+		Consistency: databases.NewConsistencyRepositoryDB(client),
 	}
 
 	h := httpdelivery.NewHandler(repos, client, cfg.CORS)
