@@ -180,7 +180,7 @@ func (r *ProblemsRepositoryDB) Dislike(username, id string) error {
 }
 
 // MarkSolved sets solved=true. On the false→true transition it also bumps
-// daily_solves(username, today) so the heatmap has live data.
+// daily_solves(username, today) and records a submission.
 func (r *ProblemsRepositoryDB) MarkSolved(username, id string) error {
 	ctx := context.Background()
 	tx, err := r.client.Pool.Begin(ctx)
@@ -188,6 +188,12 @@ func (r *ProblemsRepositoryDB) MarkSolved(username, id string) error {
 		return domain.ErrInternal("").Wrap(err)
 	}
 	defer tx.Rollback(ctx)
+
+	// fetch title for the submission record
+	var title string
+	if err := tx.QueryRow(ctx, `SELECT title FROM problems WHERE id=$1`, id).Scan(&title); err != nil {
+		return domain.ErrNotFound("problem not found")
+	}
 
 	var wasSolved bool
 	_ = tx.QueryRow(ctx,
@@ -203,12 +209,19 @@ func (r *ProblemsRepositoryDB) MarkSolved(username, id string) error {
 		return domain.ErrInternal("").Wrap(err)
 	}
 
-	// bump heatmap only on false→true transition
+	// bump heatmap and record submission only on false→true transition
 	if !wasSolved {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO daily_solves (username, day, count) VALUES ($1, CURRENT_DATE, 1)
 			ON CONFLICT (username, day) DO UPDATE SET count = daily_solves.count + 1`,
 			username); err != nil {
+			return domain.ErrInternal("").Wrap(err)
+		}
+
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO submissions (id, username, problem_id, problem_title, status, language, created_at)
+			VALUES (gen_random_uuid(), $1, $2, $3, 'Accepted', 'C++', now())`,
+			username, id, title); err != nil {
 			return domain.ErrInternal("").Wrap(err)
 		}
 	}

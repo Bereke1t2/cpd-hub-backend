@@ -22,7 +22,16 @@ func (r *ProfileRepositoryDB) ListUsers() ([]*domain.UserProfile, error) {
 		return nil, fmt.Errorf("no db client")
 	}
 	ctx := context.Background()
-	rows, err := r.client.Pool.Query(ctx, "SELECT users.username, COALESCE(users.full_name,''), COALESCE(profiles.bio,''), COALESCE(profiles.avatar_url,''), COALESCE(profiles.rating, users.rating, 0) FROM users LEFT JOIN profiles ON users.username=profiles.username")
+	rows, err := r.client.Pool.Query(ctx, `
+		SELECT 
+			u.username, 
+			COALESCE(u.full_name,''), 
+			COALESCE(p.bio,''), 
+			COALESCE(p.avatar_url,''), 
+			COALESCE(p.rating, u.rating, 0),
+			(SELECT count(*) FROM user_problems WHERE username = u.username AND solved) AS solved_problems
+		FROM users u 
+		LEFT JOIN profiles p ON u.username = p.username`)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +39,7 @@ func (r *ProfileRepositoryDB) ListUsers() ([]*domain.UserProfile, error) {
 	out := []*domain.UserProfile{}
 	for rows.Next() {
 		var p domain.UserProfile
-		if err := rows.Scan(&p.Username, &p.FullName, &p.Bio, &p.AvatarURL, &p.Rating); err != nil {
+		if err := rows.Scan(&p.Username, &p.FullName, &p.Bio, &p.AvatarURL, &p.Rating, &p.SolvedProblems); err != nil {
 			continue
 		}
 		out = append(out, &p)
@@ -43,9 +52,20 @@ func (r *ProfileRepositoryDB) GetProfile(username string) (*domain.UserProfile, 
 		return nil, fmt.Errorf("no db client")
 	}
 	ctx := context.Background()
-	row := r.client.Pool.QueryRow(ctx, "SELECT users.username, COALESCE(users.full_name,''), COALESCE(profiles.bio,''), COALESCE(profiles.avatar_url,''), COALESCE(profiles.rating, users.rating, 0) FROM users LEFT JOIN profiles ON users.username=profiles.username WHERE users.username=$1", username)
+	row := r.client.Pool.QueryRow(ctx, `
+		SELECT 
+			u.username, 
+			COALESCE(u.full_name,''), 
+			COALESCE(p.bio,''), 
+			COALESCE(p.avatar_url,''), 
+			COALESCE(p.rating, u.rating, 0),
+			(SELECT count(*) FROM user_problems WHERE username = u.username AND solved) AS solved_problems,
+			(SELECT count(*) FROM attendance WHERE username = u.username AND status = 'Present') AS attended
+		FROM users u 
+		LEFT JOIN profiles p ON u.username = p.username 
+		WHERE u.username = $1`, username)
 	var p domain.UserProfile
-	if err := row.Scan(&p.Username, &p.FullName, &p.Bio, &p.AvatarURL, &p.Rating); err != nil {
+	if err := row.Scan(&p.Username, &p.FullName, &p.Bio, &p.AvatarURL, &p.Rating, &p.SolvedProblems, &p.AttendedContestsCount); err != nil {
 		return nil, fmt.Errorf("not found: %w", err)
 	}
 	return &p, nil
