@@ -24,7 +24,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 		token := strings.TrimSpace(parts[1])
-		claims, err := ParseToken(token)
+		claims, err := ParseToken(token, "access")
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized", "message": err.Error()})
 			c.Abort()
