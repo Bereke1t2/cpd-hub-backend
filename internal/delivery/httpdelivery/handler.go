@@ -24,6 +24,7 @@ type Repos struct {
 	Activity    domain.ActivityRepository
 	Info        domain.InfoRepository
 	Consistency domain.ConsistencyRepository
+	Learning    domain.LearningRepository
 }
 
 // Handler is the interface to be implemented by an HTTP handler.
@@ -63,6 +64,10 @@ type Handler interface {
 	GetGoal(*gin.Context)
 	PutGoal(*gin.Context)
 	GetLadders(*gin.Context)
+
+	GetTopics(*gin.Context)
+	GetTracks(*gin.Context)
+	GetLesson(*gin.Context)
 }
 
 // handlerImpl is the concrete implementation used here.
@@ -151,6 +156,10 @@ func (h *handlerImpl) GetAttendance(c *gin.Context)         { h.profileAttendanc
 func (h *handlerImpl) GetSubmissions(c *gin.Context)        { h.profileSubmissions(c) }
 func (h *handlerImpl) GetActivity(c *gin.Context)           { h.activityList(c) }
 func (h *handlerImpl) GetInfo(c *gin.Context)               { h.infoList(c) }
+
+func (h *handlerImpl) GetTopics(c *gin.Context) { h.learningTopics(c) }
+func (h *handlerImpl) GetTracks(c *gin.Context) { h.learningTracks(c) }
+func (h *handlerImpl) GetLesson(c *gin.Context) { h.learningLesson(c) }
 
 // apiProblem shapes a domain.Problem into the JSON the Flutter client expects.
 func apiProblem(p *domain.Problem) gin.H {

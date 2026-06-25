@@ -92,6 +92,7 @@ func main() {
 		Activity:    databases.NewActivityRepositoryDB(client),
 		Info:        databases.NewInfoRepositoryDB(client),
 		Consistency: databases.NewConsistencyRepositoryDB(client),
+		Learning:    databases.NewLearningRepositoryDB(client),
 	}
 
 	h := httpdelivery.NewHandler(repos, client, cfg.CORS)

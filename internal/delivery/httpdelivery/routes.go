@@ -63,7 +63,6 @@ func RegisterRoutes(r *gin.Engine, h Handler, auth gin.HandlerFunc, loadUser gin
 	protected.GET("/activity", h.GetActivity)
 	protected.GET("/info", h.GetInfo)
 
-	// Consistency
 	cons := protected.Group("/consistency")
 	{
 		cons.GET("/streak", h.GetStreak)
@@ -71,5 +70,13 @@ func RegisterRoutes(r *gin.Engine, h Handler, auth gin.HandlerFunc, loadUser gin
 		cons.GET("/goal", h.GetGoal)
 		cons.PUT("/goal", h.PutGoal)
 		cons.GET("/ladders", h.GetLadders)
+	}
+
+	// Learning
+	learn := protected.Group("/learning")
+	{
+		learn.GET("/topics", h.GetTopics)
+		learn.GET("/tracks", h.GetTracks)
+		learn.GET("/lessons/:topicId", h.GetLesson)
 	}
 }

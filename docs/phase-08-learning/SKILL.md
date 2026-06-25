@@ -33,13 +33,13 @@ GET /api/learning/lessons/:topicId  → Lesson     (404 if no lesson for the top
 ---
 
 ## Checklist
-- [ ] 8.1 Domain entities + repository interface (`internal/domain/learning.go`).
-- [ ] 8.2 Migration `0009_learning` (`topics`, `topic_prerequisites`, `topic_problems`, `topic_references`,
+- [x] 8.1 Domain entities + repository interface (`internal/domain/learning.go`).
+- [x] 8.2 Migration `0009_learning` (`topics`, `topic_prerequisites`, `topic_problems`, `topic_references`,
       `tracks`, `track_topics`, `lessons`).
-- [ ] 8.3 Repository (`learning_repo.go`) — assemble each topic's arrays from the edge tables.
-- [ ] 8.4 Handlers + routes + wire in `main.go`.
-- [ ] 8.5 Seed the topic graph (this is the real work — a curated CP curriculum).
-- [ ] 8.6 Validate the graph is acyclic at seed time.
+- [x] 8.3 Repository (`learning_repo.go`) — assemble each topic's arrays from the edge tables.
+- [x] 8.4 Handlers + routes + wire in `main.go`.
+- [x] 8.5 Seed the topic graph (this is the real work — a curated CP curriculum).
+- [x] 8.6 Validate the graph is acyclic at seed time.
 
 ## 8.1 Domain
 Copy [`learning.go`](./learning.go) to `internal/domain/learning.go`. snake_case JSON to match the client.
@@ -92,9 +92,9 @@ can call from `cmd/seed`.
 ---
 
 ## Definition of Done
-- [ ] `GET /learning/topics` returns the full graph; each topic has correct `prerequisite_ids`, `problem_ids`,
+- [x] `GET /learning/topics` returns the full graph; each topic has correct `prerequisite_ids`, `problem_ids`,
       `reference_urls`.
-- [ ] `GET /learning/tracks` returns curated tracks with ordered `topic_ids`.
-- [ ] `GET /learning/lessons/:topicId` returns a lesson, or 404 for a topic with no lesson.
-- [ ] The seeded graph is acyclic (verified at seed time).
-- [ ] JSON matches the Flutter models — the app's mock learning source can be swapped for remote unchanged.
+- [x] `GET /learning/tracks` returns curated tracks with ordered `topic_ids`.
+- [x] `GET /learning/lessons/:topicId` returns a lesson, or 404 for a topic with no lesson.
+- [x] The seeded graph is acyclic (verified at seed time).
+- [x] JSON matches the Flutter models — the app's mock learning source can be swapped for remote unchanged.
