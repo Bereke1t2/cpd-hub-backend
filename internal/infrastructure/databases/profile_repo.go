@@ -46,7 +46,7 @@ func (r *ProfileRepositoryDB) GetProfile(username string) (*domain.UserProfile, 
 	row := r.client.Pool.QueryRow(ctx, "SELECT users.username, COALESCE(users.full_name,''), COALESCE(profiles.bio,''), COALESCE(profiles.avatar_url,''), COALESCE(profiles.rating, users.rating, 0) FROM users LEFT JOIN profiles ON users.username=profiles.username WHERE users.username=$1", username)
 	var p domain.UserProfile
 	if err := row.Scan(&p.Username, &p.FullName, &p.Bio, &p.AvatarURL, &p.Rating); err != nil {
-		return nil, fmt.Errorf("not found" + err.Error())
+		return nil, fmt.Errorf("not found: %w", err)
 	}
 	return &p, nil
 }
@@ -86,14 +86,13 @@ func (r *ProfileRepositoryDB) DeleteUser(username string) error {
 	return err
 }
 
-// GetProfileHeatmap returns activity heatmap entries for a user.
-// Expects a table like profile_heatmap(username, date, solve_count)
+// GetProfileHeatmap returns daily solve counts for a user from the daily_solves table.
 func (r *ProfileRepositoryDB) GetProfileHeatmap(username string) ([]domain.HeatmapEntry, error) {
 	if r.client == nil || r.client.Pool == nil {
 		return nil, fmt.Errorf("no db client")
 	}
 	ctx := context.Background()
-	rows, err := r.client.Pool.Query(ctx, "SELECT date, solve_count FROM profile_heatmap WHERE username=$1 ORDER BY date", username)
+	rows, err := r.client.Pool.Query(ctx, "SELECT day, count FROM daily_solves WHERE username=$1 ORDER BY day", username)
 	if err != nil {
 		return nil, err
 	}
@@ -113,14 +112,13 @@ func (r *ProfileRepositoryDB) GetProfileHeatmap(username string) ([]domain.Heatm
 	return out, nil
 }
 
-// GetProfileRatingHistory returns rating history for a user.
-// Expects a table like profile_ratings(username, date, rating)
+// GetProfileRatingHistory returns rating history for a user from the rating_history table.
 func (r *ProfileRepositoryDB) GetProfileRatingHistory(username string) ([]domain.RatingEntry, error) {
 	if r.client == nil || r.client.Pool == nil {
 		return nil, fmt.Errorf("no db client")
 	}
 	ctx := context.Background()
-	rows, err := r.client.Pool.Query(ctx, "SELECT date, rating FROM profile_ratings WHERE username=$1 ORDER BY date", username)
+	rows, err := r.client.Pool.Query(ctx, "SELECT day, rating FROM rating_history WHERE username=$1 ORDER BY day", username)
 	if err != nil {
 		return nil, err
 	}
@@ -140,14 +138,13 @@ func (r *ProfileRepositoryDB) GetProfileRatingHistory(username string) ([]domain
 	return out, nil
 }
 
-// GetProfileAttendance returns attendance entries for a user.
-// Expects a table like profile_attendance(username, date, status)
+// GetProfileAttendance returns attendance entries for a user from the attendance table.
 func (r *ProfileRepositoryDB) GetProfileAttendance(username string) ([]domain.AttendanceEntry, error) {
 	if r.client == nil || r.client.Pool == nil {
 		return nil, fmt.Errorf("no db client")
 	}
 	ctx := context.Background()
-	rows, err := r.client.Pool.Query(ctx, "SELECT date, status FROM profile_attendance WHERE username=$1 ORDER BY date", username)
+	rows, err := r.client.Pool.Query(ctx, "SELECT day, status FROM attendance WHERE username=$1 ORDER BY day", username)
 	if err != nil {
 		return nil, err
 	}
@@ -168,13 +165,17 @@ func (r *ProfileRepositoryDB) GetProfileAttendance(username string) ([]domain.At
 }
 
 // GetProfileSubmissions returns recent submissions for a user.
-// Expects a submissions table with columns: id, username, problem_id, problem_title, status, language, execution_time, memory_used, timestamp
+// Reads from the submissions table created by migration 0002.
 func (r *ProfileRepositoryDB) GetProfileSubmissions(username string) ([]domain.Submission, error) {
 	if r.client == nil || r.client.Pool == nil {
 		return nil, fmt.Errorf("no db client")
 	}
 	ctx := context.Background()
-	rows, err := r.client.Pool.Query(ctx, "SELECT id, problem_id, problem_title, status, language, COALESCE(execution_time,''), COALESCE(memory_used,''), timestamp FROM submissions WHERE username=$1 ORDER BY timestamp DESC LIMIT 100", username)
+	rows, err := r.client.Pool.Query(ctx,
+		"SELECT id, problem_id, problem_title, status, language, "+
+			"COALESCE(execution_time,''), COALESCE(memory_used,''), created_at "+
+			"FROM submissions WHERE username=$1 ORDER BY created_at DESC LIMIT 100",
+		username)
 	if err != nil {
 		return nil, err
 	}

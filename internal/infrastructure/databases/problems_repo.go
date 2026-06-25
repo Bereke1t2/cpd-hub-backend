@@ -50,7 +50,7 @@ func (r *ProblemsRepositoryDB) GetById(id string) (*domain.Problem, error) {
 	var p domain.Problem
 	var tags *string
 	if err := row.Scan(&p.ID, &p.Title, &p.Difficulty, &tags, &p.Likes, &p.Dislikes, &p.DeepLink, &p.IsLiked, &p.IsDisliked, &p.Solved); err != nil {
-		return nil, err
+		return nil, domain.ErrNotFound("problem not found").Wrap(err)
 	}
 	p.TopicTags = parseTags(tags)
 	return &p, nil
@@ -58,10 +58,9 @@ func (r *ProblemsRepositoryDB) GetById(id string) (*domain.Problem, error) {
 }
 
 func (r *ProblemsRepositoryDB) GetDaily() (*domain.Problem, error) {
-	// For simplicity return the first problem as daily
 	list, err := r.List()
 	if err != nil || len(list) == 0 {
-		return nil, fmt.Errorf("not found")
+		return nil, domain.ErrNotFound("no problems found")
 	}
 	return list[0], nil
 }
@@ -83,7 +82,7 @@ func (r *ProblemsRepositoryDB) Like(id string) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("not found")
+		return domain.ErrNotFound("problem not found")
 	}
 	return nil
 }
@@ -105,7 +104,7 @@ func (r *ProblemsRepositoryDB) Dislike(id string) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("not found")
+		return domain.ErrNotFound("problem not found")
 	}
 	return nil
 }
@@ -120,7 +119,7 @@ func (r *ProblemsRepositoryDB) MarkSolved(id string) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("not found")
+		return domain.ErrNotFound("problem not found")
 	}
 	return nil
 }
@@ -135,7 +134,7 @@ func (r *ProblemsRepositoryDB) UnmarkSolved(id string) error {
 		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("not found")
+		return domain.ErrNotFound("problem not found")
 	}
 	return nil
 }
