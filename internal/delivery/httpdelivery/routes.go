@@ -21,9 +21,10 @@ func RegisterRoutes(r *gin.Engine, h Handler, auth gin.HandlerFunc, loadUser gin
 	{
 		authGroup.POST("/login", h.Login)
 		authGroup.POST("/signup", h.Signup)
+		authGroup.POST("/refresh", h.Refresh) // refresh token in body; no bearer auth
 	}
 
-	// Protected routes (apply auth middleware if provided)
+	// Protected: auth required — token validated, user loaded into context.
 	protected := api.Group("/")
 	if auth != nil {
 		protected.Use(auth)
@@ -31,6 +32,9 @@ func RegisterRoutes(r *gin.Engine, h Handler, auth gin.HandlerFunc, loadUser gin
 	if loadUser != nil {
 		protected.Use(loadUser)
 	}
+
+	// Authenticated auth routes (/me)
+	protected.GET("/auth/me", h.Me)
 
 	// Problems
 	protected.GET("/problems", h.GetProblems)

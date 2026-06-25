@@ -5,11 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	// "time"
-
 	"github.com/bereket/cpd-hub-backend/internal/domain"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/external"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/security"
+	authuc "github.com/bereket/cpd-hub-backend/internal/usecase/auth"
 	contestsuc "github.com/bereket/cpd-hub-backend/internal/usecase/contests"
 	"github.com/gin-gonic/gin"
 )
@@ -27,8 +26,12 @@ type Repos struct {
 // Handler is the interface to be implemented by an HTTP handler.
 type Handler interface {
 	Router() http.Handler
+	Healthz(*gin.Context)
+	Readyz(*gin.Context)
 	Login(*gin.Context)
 	Signup(*gin.Context)
+	Me(*gin.Context)
+	Refresh(*gin.Context)
 	GetProblem(*gin.Context)
 	GetProblems(*gin.Context)
 	GetDailyProblem(*gin.Context)
@@ -54,22 +57,32 @@ type Handler interface {
 // handlerImpl is the concrete implementation used here.
 type handlerImpl struct {
 	repos  Repos
+	authUC *authuc.UseCase
+	db     Pinger // optional: used by /readyz to probe the DB; nil → always ready
 	router *gin.Engine
 }
 
-// NewHandler creates the handler and registers routes via RegisterRoutes (centralized in routes.go).
-func NewHandler(repos Repos) Handler {
-	g := gin.Default()
-	h := &handlerImpl{repos: repos, router: g}
+// NewHandler creates the handler and registers routes.
+func NewHandler(repos Repos, db Pinger, corsOrigins []string) Handler {
+	g := gin.New()
+	g.Use(gin.Logger(), RequestID(), RecoveryJSON(), CORS(corsOrigins))
 
-	// If an Auth repository is provided, enable JWT auth middleware for protected routes.
+	authUC := authuc.New(repos.Auth)
+	h := &handlerImpl{repos: repos, authUC: authUC, db: db, router: g}
+
+	g.GET("/healthz", h.Healthz)
+	g.GET("/readyz", h.Readyz)
+
 	var authMiddleware gin.HandlerFunc
+	var loadUser gin.HandlerFunc
 	if repos.Auth != nil {
 		authMiddleware = security.AuthMiddleware()
 	}
+	if repos.Profile != nil {
+		loadUser = security.LoadUser(repos.Profile)
+	}
 
-	// Register all routes in a single place (routes.go).
-	RegisterRoutes(g, h, authMiddleware, nil)
+	RegisterRoutes(g, h, authMiddleware, loadUser)
 
 	return h
 }
@@ -84,9 +97,25 @@ func (h *handlerImpl) Engine() *gin.Engine {
 	return h.router
 }
 
+// currentUsername returns the authenticated caller's handle from context.
+func currentUsername(c *gin.Context) string {
+	v, _ := c.Get("username")
+	s, _ := v.(string)
+	return s
+}
+
+// currentUser returns the authenticated caller's profile from context (may be nil).
+func currentUser(c *gin.Context) *domain.UserProfile {
+	v, _ := c.Get("user")
+	u, _ := v.(*domain.UserProfile)
+	return u
+}
+
 // --- Interface wrapper methods (delegate to existing handlers) ---
 func (h *handlerImpl) Login(c *gin.Context)                 { h.authLogin(c) }
 func (h *handlerImpl) Signup(c *gin.Context)                { h.authSignup(c) }
+func (h *handlerImpl) Me(c *gin.Context)                    { h.authMe(c) }
+func (h *handlerImpl) Refresh(c *gin.Context)               { h.authRefresh(c) }
 func (h *handlerImpl) GetProblems(c *gin.Context)           { h.problemsList(c) }
 func (h *handlerImpl) GetDailyProblem(c *gin.Context)       { h.problemsDaily(c) }
 func (h *handlerImpl) LikeProblem(c *gin.Context)           { h.problemsLike(c) }
@@ -125,227 +154,139 @@ func apiProblem(p *domain.Problem) gin.H {
 // --- Auth handlers ---
 func (h *handlerImpl) authLogin(c *gin.Context) {
 	var req domain.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "message": "bad json"})
+	if err := bindJSON(c, &req); err != nil {
+		respondError(c, err)
 		return
 	}
-	if h.repos.Auth != nil {
-		res, err := h.repos.Auth.Login(&req)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized", "message": err.Error()})
-			return
-		}
-		// shape response to include email when available
-		userMap := gin.H{"username": res.User.Username, "fullName": res.User.FullName}
-		if req.Email != "" {
-			userMap["email"] = req.Email
-		}
-		c.JSON(http.StatusOK, gin.H{"token": res.Token, "user": userMap})
+	res, err := h.authUC.Login(&req)
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"token": "sample-token", "user": gin.H{"username": "bereket", "fullName": "Bereket Lemma", "email": "test@example.com"}})
+	respondOK(c, gin.H{
+		"token":        res.Token,
+		"refreshToken": res.RefreshToken,
+		"user": gin.H{
+			"username": res.User.Username,
+			"fullName": res.User.FullName,
+		},
+	})
 }
 
 func (h *handlerImpl) authSignup(c *gin.Context) {
 	var req domain.SignupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request", "message": "bad json"})
+	if err := bindJSON(c, &req); err != nil {
+		respondError(c, err)
 		return
 	}
-	if h.repos.Auth != nil {
-		res, err := h.repos.Auth.Signup(&req)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "could not signup", "message": err.Error()})
-			return
-		}
-		userMap := gin.H{"username": res.User.Username, "fullName": res.User.FullName}
-		if req.Email != "" {
-			userMap["email"] = req.Email
-		}
-		c.JSON(http.StatusCreated, gin.H{"token": res.Token, "user": userMap})
+	res, err := h.authUC.Signup(&req)
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusInternalServerError, gin.H{"token": "sample-token", "user": gin.H{"username": "newuser", "fullName": req.FullName, "email": req.Email}})
+	respondCreated(c, gin.H{
+		"token":        res.Token,
+		"refreshToken": res.RefreshToken,
+		"user": gin.H{
+			"username": res.User.Username,
+			"fullName": res.User.FullName,
+		},
+	})
+}
+
+func (h *handlerImpl) authMe(c *gin.Context) {
+	// LoadUser has already hydrated the context; fall back to a profile lookup.
+	if u := currentUser(c); u != nil {
+		respondOK(c, u)
+		return
+	}
+	username := currentUsername(c)
+	if username == "" {
+		respondError(c, domain.ErrUnauthorized("not authenticated"))
+		return
+	}
+	p, err := h.repos.Profile.GetProfile(username)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	respondOK(c, p)
+}
+
+func (h *handlerImpl) authRefresh(c *gin.Context) {
+	var req domain.RefreshRequest
+	if err := bindJSON(c, &req); err != nil {
+		respondError(c, err)
+		return
+	}
+	res, err := h.authUC.Refresh(req.RefreshToken)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	respondOK(c, gin.H{
+		"token":        res.Token,
+		"refreshToken": res.RefreshToken,
+	})
 }
 
 // --- Problems ---
 func (h *handlerImpl) problemsList(c *gin.Context) {
-	if h.repos.Problem != nil {
-		list, err := h.repos.Problem.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list problems", "message": err.Error()})
-			return
-		}
-		out := make([]gin.H, 0, len(list))
-		for _, p := range list {
-			out = append(out, apiProblem(p))
-		}
-		c.JSON(http.StatusOK, out)
+	list, err := h.repos.Problem.List()
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusInternalServerError, []gin.H{apiProblem(&domain.Problem{ID: "p1", Title: "Two Sum", Difficulty: "Easy", TopicTags: []string{"Array", "Hash Table"}, Likes: 245, Dislikes: 12, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: true})})
+	out := make([]gin.H, 0, len(list))
+	for _, p := range list {
+		out = append(out, apiProblem(p))
+	}
+	respondOK(c, out)
 }
 
 func (h *handlerImpl) problemsDaily(c *gin.Context) {
-	if h.repos.Problem != nil {
-		p, err := h.repos.Problem.GetDaily()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get daily problem", "message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, apiProblem(p))
+	p, err := h.repos.Problem.GetDaily()
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusInternalServerError, apiProblem(&domain.Problem{ID: "dp1", Title: "Longest Common Subsequence", Difficulty: "Medium", TopicTags: []string{"Dynamic Programming", "String"}, Likes: 342, Dislikes: 18, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: false}))
+	respondOK(c, apiProblem(p))
 }
 
 func (h *handlerImpl) problemsLike(c *gin.Context) {
 	id := c.Param("id")
-	if h.repos.Auth != nil {
-		if _, ok := security.GetClaims(c); !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized", "message": "missing or invalid token"})
-			return
-		}
+	if err := h.repos.Problem.Like(id); err != nil {
+		respondError(c, err)
+		return
 	}
-	if h.repos.Problem != nil {
-		// verify existence
-		list, err := h.repos.Problem.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list problems", "message": err.Error()})
-			return
-		}
-		found := false
-		for _, p := range list {
-			if p.ID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-			return
-		}
-		if err := h.repos.Problem.Like(id); err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-				return
-			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not like", "message": err.Error(), "problemId": id})
-			return
-		}
-	}
-	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
+	respondSuccess(c)
 }
 
 func (h *handlerImpl) problemsDislike(c *gin.Context) {
 	id := c.Param("id")
-	if h.repos.Auth != nil {
-		if _, ok := security.GetClaims(c); !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized", "message": "missing or invalid token"})
-			return
-		}
+	if err := h.repos.Problem.Dislike(id); err != nil {
+		respondError(c, err)
+		return
 	}
-	if h.repos.Problem != nil {
-		list, err := h.repos.Problem.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list problems", "message": err.Error()})
-			return
-		}
-		found := false
-		for _, p := range list {
-			if p.ID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-			return
-		}
-		if err := h.repos.Problem.Dislike(id); err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-				return
-			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not dislike", "message": err.Error(), "problemId": id})
-			return
-		}
-	}
-	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
+	respondSuccess(c)
 }
 
 func (h *handlerImpl) problemsSolve(c *gin.Context) {
 	id := c.Param("id")
-	if h.repos.Auth != nil {
-		if _, ok := security.GetClaims(c); !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized", "message": "missing or invalid token"})
-			return
-		}
+	if err := h.repos.Problem.MarkSolved(id); err != nil {
+		respondError(c, err)
+		return
 	}
-	if h.repos.Problem != nil {
-		list, err := h.repos.Problem.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list problems", "message": err.Error()})
-			return
-		}
-		found := false
-		for _, p := range list {
-			if p.ID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-			return
-		}
-		if err := h.repos.Problem.MarkSolved(id); err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-				return
-			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not mark solved", "message": err.Error(), "problemId": id})
-			return
-		}
-	}
-	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
+	respondSuccess(c)
 }
 
 func (h *handlerImpl) problemsUnsolve(c *gin.Context) {
 	id := c.Param("id")
-	if h.repos.Auth != nil {
-		if _, ok := security.GetClaims(c); !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized", "message": "missing or invalid token"})
-			return
-		}
+	if err := h.repos.Problem.UnmarkSolved(id); err != nil {
+		respondError(c, err)
+		return
 	}
-	if h.repos.Problem != nil {
-		list, err := h.repos.Problem.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list problems", "message": err.Error()})
-			return
-		}
-		found := false
-		for _, p := range list {
-			if p.ID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-			return
-		}
-		if err := h.repos.Problem.UnmarkSolved(id); err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				c.JSON(http.StatusNotFound, gin.H{"error": "not found", "message": "problem not found"})
-				return
-			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not unmark solved", "message": err.Error(), "problemId": id})
-			return
-		}
-	}
-	c.JSON(http.StatusInternalServerError, gin.H{"success": true})
+	respondSuccess(c)
 }
 
 // --- Contests ---
@@ -409,140 +350,99 @@ func (h *handlerImpl) contestLeaderboard(c *gin.Context) {
 	}
 
 	// Fallback to repo-provided leaderboard
-	if h.repos.Contest != nil {
-		lb, err := h.repos.Contest.Leaderboard(id)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get leaderboard"})
-			return
-		}
-		c.JSON(http.StatusOK, lb)
+	lb, err := h.repos.Contest.Leaderboard(id)
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusInternalServerError, []domain.LeaderboardEntry{{Rank: 1, Username: "tourist", Rating: 3800, Score: 600, Penalty: 45, ProblemsSolved: []string{"A", "B", "C", "D", "E", "F"}}})
+	respondOK(c, lb)
 }
 
 // --- Profiles / Users ---
 func (h *handlerImpl) listUsers(c *gin.Context) {
-	if h.repos.Profile != nil {
-		list, err := h.repos.Profile.ListUsers()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list users", "message": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, list)
+	list, err := h.repos.Profile.ListUsers()
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, []domain.UserProfile{{Username: "bereket", FullName: "Bereket Lemma", Bio: "Competitive programmer", AvatarURL: "https://...", Rating: 1750}})
+	respondOK(c, list)
 }
 
 func (h *handlerImpl) getProfile(c *gin.Context) {
 	username := c.Param("username")
-	if h.repos.Profile != nil {
-		p, err := h.repos.Profile.GetProfile(username)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
-			return
-		}
-		c.JSON(http.StatusOK, p)
+	p, err := h.repos.Profile.GetProfile(username)
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, domain.UserProfile{Username: username, FullName: "Bereket Lemma", Bio: "Competitive programmer | CPD Hub enthusiast"})
+	respondOK(c, p)
 }
 
 func (h *handlerImpl) profileHeatmap(c *gin.Context) {
 	username := c.Param("username")
-	if h.repos.Profile != nil {
-		if hm, err := h.repos.Profile.GetProfileHeatmap(username); err == nil {
-			c.JSON(http.StatusOK, hm)
-			return
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get heatmap", "message": err.Error()})
-			return
-		}
+	hm, err := h.repos.Profile.GetProfileHeatmap(username)
+	if err != nil {
+		respondError(c, err)
+		return
 	}
-	// Fallback sample data
-	c.JSON(http.StatusOK, []domain.HeatmapEntry{{Date: "2026-02-01", SolveCount: 0}, {Date: "2026-02-02", SolveCount: 3}})
+	respondOK(c, hm)
 }
 
 func (h *handlerImpl) profileRatingHistory(c *gin.Context) {
 	username := c.Param("username")
-	if h.repos.Profile != nil {
-		if rh, err := h.repos.Profile.GetProfileRatingHistory(username); err == nil {
-			c.JSON(http.StatusOK, rh)
-			return
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get rating history", "message": err.Error()})
-			return
-		}
+	rh, err := h.repos.Profile.GetProfileRatingHistory(username)
+	if err != nil {
+		respondError(c, err)
+		return
 	}
-	c.JSON(http.StatusOK, []domain.RatingEntry{{Date: "2025-08-01", Rating: 1000}, {Date: "2026-01-01", Rating: 1750}})
+	respondOK(c, rh)
 }
 
 func (h *handlerImpl) profileAttendance(c *gin.Context) {
 	username := c.Param("username")
-	if h.repos.Profile != nil {
-		if att, err := h.repos.Profile.GetProfileAttendance(username); err == nil {
-			c.JSON(http.StatusOK, att)
-			return
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get attendance", "message": err.Error()})
-			return
-		}
+	att, err := h.repos.Profile.GetProfileAttendance(username)
+	if err != nil {
+		respondError(c, err)
+		return
 	}
-	c.JSON(http.StatusOK, []domain.AttendanceEntry{{Date: "2026-02-01", Status: "Present"}, {Date: "2026-02-02", Status: "Absent"}})
+	respondOK(c, att)
 }
 
 func (h *handlerImpl) profileSubmissions(c *gin.Context) {
 	username := c.Param("username")
-	if h.repos.Profile != nil {
-		if subs, err := h.repos.Profile.GetProfileSubmissions(username); err == nil {
-			c.JSON(http.StatusOK, subs)
-			return
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not get submissions", "message": err.Error()})
-			return
-		}
+	subs, err := h.repos.Profile.GetProfileSubmissions(username)
+	if err != nil {
+		respondError(c, err)
+		return
 	}
-	c.JSON(http.StatusOK, []domain.Submission{{ID: "s1", ProblemID: "p1", ProblemTitle: "Two Sum", Status: "Accepted", Language: "Python", ExecutionTime: "45ms", MemoryUsed: "14.2MB", Timestamp: "2026-03-01T09:00:00Z"}})
+	respondOK(c, subs)
 }
 
 // --- Activity & Info ---
 func (h *handlerImpl) activityList(c *gin.Context) {
-	if h.repos.Activity != nil {
-		list, err := h.repos.Activity.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list activity"})
-			return
-		}
-		c.JSON(http.StatusOK, list)
+	list, err := h.repos.Activity.List()
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusInternalServerError, []domain.Activity{{ID: "a1", Username: "abel", Action: "solved 'Two Sum' in 3 min", Type: "Solve", Timestamp: "2 min ago"}})
+	respondOK(c, list)
 }
 
 func (h *handlerImpl) infoList(c *gin.Context) {
-	if h.repos.Info != nil {
-		list, err := h.repos.Info.List()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not list info"})
-			return
-		}
-		c.JSON(http.StatusOK, list)
+	list, err := h.repos.Info.List()
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusInternalServerError, []domain.Info{{Title: "System Maintenance", Description: "Scheduled maintenance on Feb 20th from 2-4 AM"}})
+	respondOK(c, list)
 }
 
 func (h *handlerImpl) GetProblem(c *gin.Context) {
 	id := c.Param("id")
-	if h.repos.Problem != nil {
-		p, err := h.repos.Problem.GetById(id)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"message": "not found", "error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, apiProblem(p))
+	p, err := h.repos.Problem.GetById(id)
+	if err != nil {
+		respondError(c, err)
 		return
 	}
-	c.JSON(http.StatusInternalServerError, apiProblem(&domain.Problem{ID: id, Title: "Sample Problem", Difficulty: "Medium", TopicTags: []string{"Example"}, Likes: 100, Dislikes: 5, DeepLink: "https://...", IsLiked: false, IsDisliked: false, Solved: false}))
+	respondOK(c, apiProblem(p))
 }
