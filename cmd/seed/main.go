@@ -16,7 +16,7 @@ import (
 
 func main() {
 	dsnFlag := flag.String("dsn", "", "Postgres DSN (overrides DATABASE_URL env)")
-	seedPath := flag.String("seed", "internal/infrastructure/postgres", "Path to seed SQL file or directory (default runs all .sql in internal/infrastructure/postgres)")
+	seedPath := flag.String("seed", "cmd/seed/seed.sql", "Path to a seed .sql file or a directory of .sql files (executed in alphabetical order)")
 	flag.Parse()
 
 	dsn := *dsnFlag
