@@ -1,0 +1,12 @@
+# Template for Phase 1 — copy to: ./.dockerignore (repo root, rename this file)
+.git
+.gitignore
+*.md
+docs/
+seed
+.env
+.env.*
+*_test.go
+build/
+dist/
+.DS_Store

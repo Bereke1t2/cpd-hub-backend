@@ -1,0 +1,63 @@
+# Template for Phase 11 — copy to: .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cpdhub_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/cpdhub_test?sslmode=disable
+      JWT_SECRET: test-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Format check
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Migrate
+        run: go run ./cmd/migrate -database "$DATABASE_URL" -dir migrations up
+
+      - name: Test
+        run: go test ./... -count=1 -coverprofile=cover.out
+
+      - name: Coverage summary
+        run: go tool cover -func=cover.out | tail -n 1
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.22', cache: true }
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with: { version: latest }

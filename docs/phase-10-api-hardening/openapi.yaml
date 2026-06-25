@@ -1,0 +1,144 @@
+# Template for Phase 10 — copy to: docs/openapi.yaml (then complete every schema)
+# Keep in sync with internal/delivery/httpdelivery/routes.go. A stale spec is worse than none.
+openapi: 3.0.3
+info:
+  title: CPD Hub Backend API
+  version: 1.0.0
+  description: >
+    Go/Gin backend for the CPD Hub mobile app. All /api routes except /auth/* require
+    a Bearer JWT. Field names match the Flutter models in ../CPD_HUB/lib.
+servers:
+  - url: http://localhost:8080/api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: not_found }
+        message: { type: string, example: problem not found }
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user:
+          type: object
+          properties:
+            username: { type: string }
+            fullName: { type: string }
+    Problem:
+      type: object
+      properties:
+        id: { type: string }
+        problemId: { type: string }
+        title: { type: string }
+        difficulty: { type: string }
+        topicTags: { type: array, items: { type: string } }
+        numberOfLikes: { type: integer }
+        numberOfDislikes: { type: integer }
+        problemUrl: { type: string }
+        isLiked: { type: boolean }
+        isDisliked: { type: boolean }
+        solved: { type: boolean }
+        numberOfSolvedPeople: { type: integer }
+    Streak:
+      type: object
+      properties:
+        current: { type: integer }
+        longest: { type: integer }
+        last_active_day: { type: string, nullable: true, example: "2026-06-21" }
+        freezes_available: { type: integer }
+        active_days: { type: array, items: { type: string } }
+    Goal:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string }
+        target: { type: integer }
+        progress: { type: integer }
+        period_start: { type: string }
+    Topic:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        category: { type: string }
+        summary: { type: string }
+        difficulty: { type: integer }
+        prerequisite_ids: { type: array, items: { type: string } }
+        problem_ids: { type: array, items: { type: string } }
+        reference_urls: { type: array, items: { type: string } }
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      security: []
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '401': { description: invalid credentials, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/signup:
+    post:
+      security: []
+      summary: Create an account
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '409': { description: email exists }
+  /auth/me:
+    get:
+      summary: Current user (Phase 3)
+      responses: { '200': { description: OK } }
+  /problems:
+    get:
+      summary: List problems (per-user state)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer } }
+        - { name: offset, in: query, schema: { type: integer } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Problem' } } } } }
+  /problems/daily:
+    get: { summary: Daily problem, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } } } }
+  /problems/{id}/like:
+    post: { summary: Toggle like, responses: { '200': { description: OK } , '404': { description: not found } } }
+  /problems/{id}/solve:
+    post: { summary: Mark solved, responses: { '200': { description: OK } } }
+    delete: { summary: Unmark solved, responses: { '200': { description: OK } } }
+  /contests:
+    get: { summary: List contests (cached), responses: { '200': { description: OK } } }
+  /consistency/streak:
+    get: { summary: Get streak, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Streak' } } } } } }
+    put: { summary: Save streak, responses: { '200': { description: OK } } }
+  /consistency/goal:
+    get: { summary: Get goal, responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Goal' } } } } } }
+    put: { summary: Save goal, responses: { '200': { description: OK } } }
+  /consistency/ladders:
+    get: { summary: Get ladders, responses: { '200': { description: OK } } }
+  /learning/topics:
+    get: { summary: Topic DAG, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Topic' } } } } } } }
+  /learning/tracks:
+    get: { summary: Tracks, responses: { '200': { description: OK } } }
+  /learning/lessons/{topicId}:
+    get: { summary: Lesson for a topic, responses: { '200': { description: OK }, '404': { description: no lesson } } }
+  /bookmarks:
+    get: { summary: List bookmarks, responses: { '200': { description: OK } } }
+  /bookmarks/{problemId}:
+    post: { summary: Add bookmark, responses: { '200': { description: OK } } }
+    delete: { summary: Remove bookmark, responses: { '200': { description: OK } } }
+  /activity:
+    get: { summary: Activity feed, responses: { '200': { description: OK } } }
+  /info:
+    get: { summary: Announcements, responses: { '200': { description: OK } } }
