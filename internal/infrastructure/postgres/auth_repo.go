@@ -4,69 +4,64 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/bereket/cpd-hub-backend/internal/domain"
-	"github.com/bereket/cpd-hub-backend/internal/infrastructure/security"
 )
 
 // AuthRepositoryPG implements domain.AuthRepository backed by Postgres.
+// This is pure data access — all business rules live in usecase/auth.
 type AuthRepositoryPG struct {
 	client *Client
 }
 
 func NewAuthRepositoryPG(client *Client) *AuthRepositoryPG {
-	// ensure users table exists
-	_ = client.ensureUsersTable(context.Background())
 	return &AuthRepositoryPG{client: client}
 }
 
-func (r *AuthRepositoryPG) Login(req *domain.LoginRequest) (*domain.AuthResponse, error) {
-	if req.Email == "" || req.Password == "" {
-		return nil, errors.New("email and password required")
-	}
+// FindByEmailOrUsername looks up a user by either the email column or the
+// username handle — used by login so the client can use either.
+func (r *AuthRepositoryPG) FindByEmailOrUsername(login string) (*domain.UserRecord, error) {
 	ctx := context.Background()
-	row := r.client.Pool.QueryRow(ctx, "SELECT username, full_name, password_hash FROM users WHERE username=$1", req.Email)
-	var username, fullName, passwordHash string
-	if err := row.Scan(&username, &fullName, &passwordHash); err != nil {
-		return nil, errors.New("invalid credentials")
+	row := r.client.Pool.QueryRow(ctx,
+		`SELECT username, COALESCE(email,''), full_name, password_hash
+		   FROM users
+		  WHERE email = $1 OR username = $1
+		  LIMIT 1`,
+		login)
+	var rec domain.UserRecord
+	if err := row.Scan(&rec.Username, &rec.Email, &rec.FullName, &rec.PasswordHash); err != nil {
+		return nil, errors.New("not found")
 	}
-	if err := security.ComparePassword(passwordHash, req.Password); err != nil {
-		return nil, errors.New("invalid credentials")
-	}
-	// generate token
-	tok, err := security.GenerateToken(&domain.UserProfile{Username: username, FullName: fullName}, 24*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("could not generate token: %w", err)
-	}
-	return &domain.AuthResponse{Token: tok, User: domain.UserProfile{Username: username, FullName: fullName}}, nil
+	return &rec, nil
 }
 
-func (r *AuthRepositoryPG) Signup(req *domain.SignupRequest) (*domain.AuthResponse, error) {
-	if req.Email == "" || req.Password == "" || req.FullName == "" {
-		return nil, errors.New("missing fields")
-	}
-	if req.Password != req.ConfirmPassword {
-		return nil, errors.New("passwords do not match")
-	}
+// ExistsEmail reports whether a row with this email already exists.
+func (r *AuthRepositoryPG) ExistsEmail(email string) (bool, error) {
 	ctx := context.Background()
-	// check exists
-	row := r.client.Pool.QueryRow(ctx, "SELECT username FROM users WHERE username=$1", req.Email)
-	var existing string
-	if err := row.Scan(&existing); err == nil {
-		return nil, errors.New("user already exists")
-	}
-	hash, err := security.HashPassword(req.Password)
+	var count int
+	err := r.client.Pool.QueryRow(ctx,
+		`SELECT COUNT(1) FROM users WHERE email = $1`, email).Scan(&count)
+	return count > 0, err
+}
+
+// UsernameTaken reports whether a row with this username already exists.
+func (r *AuthRepositoryPG) UsernameTaken(username string) (bool, error) {
+	ctx := context.Background()
+	var count int
+	err := r.client.Pool.QueryRow(ctx,
+		`SELECT COUNT(1) FROM users WHERE username = $1`, username).Scan(&count)
+	return count > 0, err
+}
+
+// Insert creates a new user row. password_hash must already be bcrypt-hashed.
+func (r *AuthRepositoryPG) Insert(rec *domain.UserRecord) error {
+	ctx := context.Background()
+	_, err := r.client.Pool.Exec(ctx,
+		`INSERT INTO users (username, email, full_name, password_hash, rating)
+		 VALUES ($1, $2, $3, $4, 0)`,
+		rec.Username, rec.Email, rec.FullName, rec.PasswordHash)
 	if err != nil {
-		return nil, fmt.Errorf("could not hash password: %w", err)
+		return fmt.Errorf("insert user: %w", err)
 	}
-	_, err = r.client.Pool.Exec(ctx, "INSERT INTO users (username, full_name, password_hash, rating) VALUES ($1,$2,$3,$4)", req.Email, req.FullName, hash, 0)
-	if err != nil {
-		return nil, fmt.Errorf("could not insert user: %w", err)
-	}
-	tok, err := security.GenerateToken(&domain.UserProfile{Username: req.Email, FullName: req.FullName}, 24*time.Hour)
-	if err != nil {
-		return nil, fmt.Errorf("could not generate token: %w", err)
-	}
-	return &domain.AuthResponse{Token: tok, User: domain.UserProfile{Username: req.Email, FullName: req.FullName}}, nil
+	return nil
 }
