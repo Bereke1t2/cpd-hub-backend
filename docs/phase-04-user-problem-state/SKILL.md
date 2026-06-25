@@ -13,14 +13,14 @@ heatmap (Phase 5) has data.
 ---
 
 ## Checklist
-- [ ] 4.1 Extend `ProblemRepository` with user-scoped methods.
-- [ ] 4.2 Implement them against `user_problems` (copy `user_problem_repo.go`).
-- [ ] 4.3 Like/dislike/solve usecase: upsert join row; keep counts consistent in a transaction.
-- [ ] 4.4 Reads (`List`, `GetById`, `GetDaily`) join the current user's state + counts.
-- [ ] 4.5 Handlers pass `currentUsername(c)` into every problem call.
-- [ ] 4.6 `apiProblem` fills `numberOfSolvedPeople` from a real count.
-- [ ] 4.7 Date-based daily problem (deterministic per day).
-- [ ] 4.8 On solve, increment `daily_solves(username, today)`.
+- [x] 4.1 Extend `ProblemRepository` with user-scoped methods.
+- [x] 4.2 Implement them against `user_problems` (copy `user_problem_repo.go`).
+- [x] 4.3 Like/dislike/solve usecase: upsert join row; keep counts consistent in a transaction.
+- [x] 4.4 Reads (`List`, `GetById`, `GetDaily`) join the current user's state + counts.
+- [x] 4.5 Handlers pass `currentUsername(c)` into every problem call.
+- [x] 4.6 `apiProblem` fills `numberOfSolvedPeople` from a real count.
+- [x] 4.7 Date-based daily problem (deterministic per day).
+- [x] 4.8 On solve, increment `daily_solves(username, today)`.
 
 ---
 
@@ -96,10 +96,10 @@ historical count — decide and document. This is what makes the Phase 5 heatmap
 ---
 
 ## Definition of Done
-- [ ] Two different users see independent `isLiked`/`solved` for the same problem.
-- [ ] `numberOfLikes`/`numberOfDislikes` reflect aggregate counts and stay correct after toggles.
-- [ ] `numberOfSolvedPeople` is a real count, not `0`.
-- [ ] Liking then liking again is a clean toggle; liking clears any dislike (and vice-versa).
-- [ ] `GET /problems/daily` returns the same problem all day, different across days, with the caller's state.
-- [ ] Solving a new problem creates/increments today's `daily_solves` row.
-- [ ] Client JSON shape unchanged — the Flutter app needs no edits.
+- [x] Two different users see independent `isLiked`/`solved` for the same problem.
+- [x] `numberOfLikes`/`numberOfDislikes` reflect aggregate counts and stay correct after toggles.
+- [x] `numberOfSolvedPeople` is a real count, not `0`.
+- [x] Liking then liking again is a clean toggle; liking clears any dislike (and vice-versa).
+- [x] `GET /problems/daily` returns the same problem all day, different across days, with the caller's state.
+- [x] Solving a new problem creates/increments today's `daily_solves` row.
+- [x] Client JSON shape unchanged — the Flutter app needs no edits.

@@ -133,7 +133,7 @@ func (h *handlerImpl) GetSubmissions(c *gin.Context)        { h.profileSubmissio
 func (h *handlerImpl) GetActivity(c *gin.Context)           { h.activityList(c) }
 func (h *handlerImpl) GetInfo(c *gin.Context)               { h.infoList(c) }
 
-// helper: shape domain.Problem into API-friendly map with aliases expected by client
+// apiProblem shapes a domain.Problem into the JSON the Flutter client expects.
 func apiProblem(p *domain.Problem) gin.H {
 	return gin.H{
 		"id":                   p.ID,
@@ -147,7 +147,7 @@ func apiProblem(p *domain.Problem) gin.H {
 		"isLiked":              p.IsLiked,
 		"isDisliked":           p.IsDisliked,
 		"solved":               p.Solved,
-		"numberOfSolvedPeople": 0, // not tracked yet in domain; placeholder
+		"numberOfSolvedPeople": p.SolverCount, // real count from user_problems
 	}
 }
 
@@ -232,7 +232,7 @@ func (h *handlerImpl) authRefresh(c *gin.Context) {
 
 // --- Problems ---
 func (h *handlerImpl) problemsList(c *gin.Context) {
-	list, err := h.repos.Problem.List()
+	list, err := h.repos.Problem.ListForUser(currentUsername(c))
 	if err != nil {
 		respondError(c, err)
 		return
@@ -245,7 +245,7 @@ func (h *handlerImpl) problemsList(c *gin.Context) {
 }
 
 func (h *handlerImpl) problemsDaily(c *gin.Context) {
-	p, err := h.repos.Problem.GetDaily()
+	p, err := h.repos.Problem.GetDailyForUser(currentUsername(c))
 	if err != nil {
 		respondError(c, err)
 		return
@@ -254,8 +254,7 @@ func (h *handlerImpl) problemsDaily(c *gin.Context) {
 }
 
 func (h *handlerImpl) problemsLike(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.repos.Problem.Like(id); err != nil {
+	if err := h.repos.Problem.Like(currentUsername(c), c.Param("id")); err != nil {
 		respondError(c, err)
 		return
 	}
@@ -263,8 +262,7 @@ func (h *handlerImpl) problemsLike(c *gin.Context) {
 }
 
 func (h *handlerImpl) problemsDislike(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.repos.Problem.Dislike(id); err != nil {
+	if err := h.repos.Problem.Dislike(currentUsername(c), c.Param("id")); err != nil {
 		respondError(c, err)
 		return
 	}
@@ -272,8 +270,7 @@ func (h *handlerImpl) problemsDislike(c *gin.Context) {
 }
 
 func (h *handlerImpl) problemsSolve(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.repos.Problem.MarkSolved(id); err != nil {
+	if err := h.repos.Problem.MarkSolved(currentUsername(c), c.Param("id")); err != nil {
 		respondError(c, err)
 		return
 	}
@@ -281,8 +278,7 @@ func (h *handlerImpl) problemsSolve(c *gin.Context) {
 }
 
 func (h *handlerImpl) problemsUnsolve(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.repos.Problem.UnmarkSolved(id); err != nil {
+	if err := h.repos.Problem.UnmarkSolved(currentUsername(c), c.Param("id")); err != nil {
 		respondError(c, err)
 		return
 	}
@@ -438,8 +434,7 @@ func (h *handlerImpl) infoList(c *gin.Context) {
 }
 
 func (h *handlerImpl) GetProblem(c *gin.Context) {
-	id := c.Param("id")
-	p, err := h.repos.Problem.GetById(id)
+	p, err := h.repos.Problem.GetByIDForUser(currentUsername(c), c.Param("id"))
 	if err != nil {
 		respondError(c, err)
 		return
