@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 
@@ -48,7 +47,10 @@ func main() {
 	// load .env before reading environment variables
 	loadDotEnv(".env")
 
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
 
 	// Require DATABASE_URL for DB-backed operation
 	dsn := os.Getenv("DATABASE_URL")
@@ -63,9 +65,8 @@ func main() {
 	}
 	defer client.Close()
 
-	// Run basic migrations / ensure tables
-	if err := client.EnsureAllTables(ctx); err != nil {
-		log.Fatalf("could not ensure database tables: %v", err)
+	if err := postgres.RunMigrations(cfg.Database.URL, "migrations"); err != nil {
+		log.Fatalf("migrations failed: %v", err)
 	}
 
 	// Wire DB-backed repositories
@@ -78,15 +79,10 @@ func main() {
 		Info:     databases.NewInfoRepositoryDB(client),
 	}
 
-	h := httpdelivery.NewHandler(repos)
+	h := httpdelivery.NewHandler(repos, client, cfg.CORS)
 
-	srv := http.Server{
-		Addr:    cfg.Server.Address,
-		Handler: h.Router(),
-	}
-
-	log.Printf("starting server on %s", cfg.Server.Address)
-	if err := srv.ListenAndServe(); err != nil {
+	srv := httpdelivery.NewServer(cfg.Server.Address, h.Router())
+	if err := srv.Run(ctx); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }
