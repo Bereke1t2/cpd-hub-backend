@@ -47,4 +47,3 @@ func (c *Client) Close() {
 	}
 	c.Pool.Close()
 }
-

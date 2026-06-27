@@ -41,11 +41,11 @@ type AttendanceEntry struct {
 
 // Submission entry
 type Submission struct {
-	ID           string `json:"id"`
-	ProblemID    string `json:"problemId"`
-	ProblemTitle string `json:"problemTitle"`
-	Status       string `json:"status"`
-	Language     string `json:"language"`
+	ID            string `json:"id"`
+	ProblemID     string `json:"problemId"`
+	ProblemTitle  string `json:"problemTitle"`
+	Status        string `json:"status"`
+	Language      string `json:"language"`
 	ExecutionTime string `json:"executionTime,omitempty"`
 	MemoryUsed    string `json:"memoryUsed,omitempty"`
 	Timestamp     string `json:"timestamp"`
@@ -53,7 +53,7 @@ type Submission struct {
 
 // Profile repository
 type ProfileRepository interface {
-	ListUsers() ([]*UserProfile, error)
+	ListUsers(limit, offset int) ([]*UserProfile, error)
 	GetProfile(username string) (*UserProfile, error)
 	CreateUser(user *UserProfile) error
 	UpdateUser(user *UserProfile) error

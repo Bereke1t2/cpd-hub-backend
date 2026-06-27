@@ -2,20 +2,20 @@ package domain
 
 // Streak — last_active_day is nullable (pointer).
 type Streak struct {
-	Current          int      `json:"current"`
-	Longest          int      `json:"longest"`
-	LastActiveDay    *string  `json:"last_active_day"`   // "2026-06-21" or null
-	FreezesAvailable int      `json:"freezes_available"` // default 2
-	ActiveDays       []string `json:"active_days"`       // ["2026-06-19", ...]
+	Current          int      `json:"current" binding:"gte=0"`
+	Longest          int      `json:"longest" binding:"gte=0"`
+	LastActiveDay    *string  `json:"last_active_day"`                   // "2026-06-21" or null
+	FreezesAvailable int      `json:"freezes_available" binding:"gte=0"` // default 2
+	ActiveDays       []string `json:"active_days"`
 }
 
 // Goal — type mirrors the client's GoalType enum name (e.g. "problemsPerWeek").
 type Goal struct {
-	ID          string `json:"id"`     // default "weekly-problems"
-	Type        string `json:"type"`   // default "problemsPerWeek"
-	Target      int    `json:"target"` // default 5
-	Progress    int    `json:"progress"`
-	PeriodStart string `json:"period_start"` // "2026-06-15"
+	ID          string `json:"id" binding:"required"`   // default "weekly-problems"
+	Type        string `json:"type" binding:"required"` // default "problemsPerWeek"
+	Target      int    `json:"target" binding:"gte=1"`  // default 5
+	Progress    int    `json:"progress" binding:"gte=0"`
+	PeriodStart string `json:"period_start" binding:"required"` // "2026-06-15"
 }
 
 type LadderRung struct {

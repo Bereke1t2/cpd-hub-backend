@@ -9,5 +9,6 @@ type Activity struct {
 }
 
 type ActivityRepository interface {
-	List() ([]*Activity, error)
+	List(limit, offset int) ([]*Activity, error)
+	InsertActivity(a *Activity) error
 }

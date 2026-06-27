@@ -49,9 +49,11 @@ func (r *ProblemsRepositoryDB) scanRow(row interface {
 	return &p, solvers, nil
 }
 
-// ListForUser returns all problems with the calling user's per-user state.
-func (r *ProblemsRepositoryDB) ListForUser(username string) ([]*domain.Problem, error) {
-	rows, err := r.client.Pool.Query(context.Background(), selectWithState, username)
+// ListForUser returns problems with the calling user's per-user state, paginated.
+func (r *ProblemsRepositoryDB) ListForUser(username string, limit, offset int) ([]*domain.Problem, error) {
+	rows, err := r.client.Pool.Query(context.Background(),
+		selectWithState+" ORDER BY p.title LIMIT $2 OFFSET $3",
+		username, limit, offset)
 	if err != nil {
 		return nil, domain.ErrInternal("could not list problems").Wrap(err)
 	}

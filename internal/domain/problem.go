@@ -20,7 +20,7 @@ type Problem struct {
 // ProblemRepository is user-aware: every read and write scoped to a username.
 type ProblemRepository interface {
 	// Reads — all return the calling user's isLiked/isDisliked/solved state.
-	ListForUser(username string) ([]*Problem, error)
+	ListForUser(username string, limit, offset int) ([]*Problem, error)
 	GetByIDForUser(username, id string) (*Problem, error)
 	GetDailyForUser(username string) (*Problem, error)
 

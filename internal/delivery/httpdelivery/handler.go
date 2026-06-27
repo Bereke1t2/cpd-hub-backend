@@ -11,6 +11,7 @@ import (
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/external"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/postgres"
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/security"
+	activityuc "github.com/bereket/cpd-hub-backend/internal/usecase/activity"
 	authuc "github.com/bereket/cpd-hub-backend/internal/usecase/auth"
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ type Repos struct {
 	Contest     domain.ContestRepository
 	Profile     domain.ProfileRepository
 	Activity    domain.ActivityRepository
+	Bookmark    domain.BookmarkRepository
 	Info        domain.InfoRepository
 	Consistency domain.ConsistencyRepository
 	Learning    domain.LearningRepository
@@ -59,6 +61,10 @@ type Handler interface {
 	GetActivity(*gin.Context)
 	GetInfo(*gin.Context)
 
+	ListBookmarks(*gin.Context)
+	AddBookmark(*gin.Context)
+	RemoveBookmark(*gin.Context)
+
 	GetStreak(*gin.Context)
 	PutStreak(*gin.Context)
 	GetGoal(*gin.Context)
@@ -72,24 +78,31 @@ type Handler interface {
 
 // handlerImpl is the concrete implementation used here.
 type handlerImpl struct {
-	repos   Repos
-	authUC  *authuc.UseCase
-	db      *postgres.Client
-	router  *gin.Engine
-	lbCache *external.TTLCache
+	repos    Repos
+	authUC   *authuc.UseCase
+	recorder *activityuc.Recorder
+	db       *postgres.Client
+	router   *gin.Engine
+	lbCache  *external.TTLCache
 }
 
 // NewHandler creates the handler and registers routes.
 func NewHandler(repos Repos, db *postgres.Client, corsOrigins []string) Handler {
-	g := gin.Default()
+	g := gin.New()
+	g.Use(RecoveryJSON(), RequestID(), SecurityHeaders(), BodySizeLimit(1<<20))
 
 	authUC := authuc.New(repos.Auth)
+	var recorder *activityuc.Recorder
+	if repos.Activity != nil {
+		recorder = activityuc.NewRecorder(repos.Activity)
+	}
 	h := &handlerImpl{
-		repos:   repos,
-		authUC:  authUC,
-		db:      db,
-		router:  g,
-		lbCache: external.NewTTLCache(60 * time.Second),
+		repos:    repos,
+		authUC:   authUC,
+		recorder: recorder,
+		db:       db,
+		router:   g,
+		lbCache:  external.NewTTLCache(60 * time.Second),
 	}
 
 	g.GET("/healthz", h.Healthz)
@@ -156,6 +169,9 @@ func (h *handlerImpl) GetAttendance(c *gin.Context)         { h.profileAttendanc
 func (h *handlerImpl) GetSubmissions(c *gin.Context)        { h.profileSubmissions(c) }
 func (h *handlerImpl) GetActivity(c *gin.Context)           { h.activityList(c) }
 func (h *handlerImpl) GetInfo(c *gin.Context)               { h.infoList(c) }
+func (h *handlerImpl) ListBookmarks(c *gin.Context)         { h.bookmarksList(c) }
+func (h *handlerImpl) AddBookmark(c *gin.Context)           { h.bookmarksAdd(c) }
+func (h *handlerImpl) RemoveBookmark(c *gin.Context)        { h.bookmarksRemove(c) }
 
 func (h *handlerImpl) GetTopics(c *gin.Context) { h.learningTopics(c) }
 func (h *handlerImpl) GetTracks(c *gin.Context) { h.learningTracks(c) }
@@ -260,7 +276,8 @@ func (h *handlerImpl) authRefresh(c *gin.Context) {
 
 // --- Problems ---
 func (h *handlerImpl) problemsList(c *gin.Context) {
-	list, err := h.repos.Problem.ListForUser(currentUsername(c))
+	pg := parsePage(c)
+	list, err := h.repos.Problem.ListForUser(currentUsername(c), pg.Limit, pg.Offset)
 	if err != nil {
 		respondError(c, err)
 		return
@@ -282,9 +299,16 @@ func (h *handlerImpl) problemsDaily(c *gin.Context) {
 }
 
 func (h *handlerImpl) problemsLike(c *gin.Context) {
-	if err := h.repos.Problem.Like(currentUsername(c), c.Param("id")); err != nil {
+	username := currentUsername(c)
+	id := c.Param("id")
+	if err := h.repos.Problem.Like(username, id); err != nil {
 		respondError(c, err)
 		return
+	}
+	if h.recorder != nil {
+		if p, err := h.repos.Problem.GetByIDForUser(username, id); err == nil {
+			h.recorder.RecordLike(username, p.Title, time.Now())
+		}
 	}
 	respondSuccess(c)
 }
@@ -298,9 +322,16 @@ func (h *handlerImpl) problemsDislike(c *gin.Context) {
 }
 
 func (h *handlerImpl) problemsSolve(c *gin.Context) {
-	if err := h.repos.Problem.MarkSolved(currentUsername(c), c.Param("id")); err != nil {
+	username := currentUsername(c)
+	id := c.Param("id")
+	if err := h.repos.Problem.MarkSolved(username, id); err != nil {
 		respondError(c, err)
 		return
+	}
+	if h.recorder != nil {
+		if p, err := h.repos.Problem.GetByIDForUser(username, id); err == nil {
+			h.recorder.RecordSolve(username, p.Title, time.Now())
+		}
 	}
 	respondSuccess(c)
 }
@@ -410,7 +441,8 @@ func (h *handlerImpl) contestLeaderboard(c *gin.Context) {
 
 // --- Profiles / Users ---
 func (h *handlerImpl) listUsers(c *gin.Context) {
-	list, err := h.repos.Profile.ListUsers()
+	pg := parsePage(c)
+	list, err := h.repos.Profile.ListUsers(pg.Limit, pg.Offset)
 	if err != nil {
 		respondError(c, err)
 		return
@@ -470,10 +502,15 @@ func (h *handlerImpl) profileSubmissions(c *gin.Context) {
 
 // --- Activity & Info ---
 func (h *handlerImpl) activityList(c *gin.Context) {
-	list, err := h.repos.Activity.List()
+	pg := parsePage(c)
+	list, err := h.repos.Activity.List(pg.Limit, pg.Offset)
 	if err != nil {
 		respondError(c, err)
 		return
+	}
+	now := time.Now()
+	for _, a := range list {
+		a.Timestamp = activityuc.HumanizeSince(a.Timestamp, now)
 	}
 	respondOK(c, list)
 }
@@ -485,6 +522,39 @@ func (h *handlerImpl) infoList(c *gin.Context) {
 		return
 	}
 	respondOK(c, list)
+}
+
+// --- Bookmarks ---
+func (h *handlerImpl) bookmarksList(c *gin.Context) {
+	username := currentUsername(c)
+	ids, err := h.repos.Bookmark.ListProblemIDs(username)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	out := make([]gin.H, 0, len(ids))
+	for _, id := range ids {
+		if p, err := h.repos.Problem.GetByIDForUser(username, id); err == nil {
+			out = append(out, apiProblem(p))
+		}
+	}
+	respondOK(c, out)
+}
+
+func (h *handlerImpl) bookmarksAdd(c *gin.Context) {
+	if err := h.repos.Bookmark.Add(currentUsername(c), c.Param("problemId")); err != nil {
+		respondError(c, err)
+		return
+	}
+	respondSuccess(c)
+}
+
+func (h *handlerImpl) bookmarksRemove(c *gin.Context) {
+	if err := h.repos.Bookmark.Remove(currentUsername(c), c.Param("problemId")); err != nil {
+		respondError(c, err)
+		return
+	}
+	respondSuccess(c)
 }
 
 func (h *handlerImpl) GetProblem(c *gin.Context) {

@@ -12,8 +12,8 @@ func New(repo domain.ProblemRepository) *Usecase {
 	return &Usecase{repo: repo}
 }
 
-func (u *Usecase) ListForUser(username string) ([]*domain.Problem, error) {
-	return u.repo.ListForUser(username)
+func (u *Usecase) ListForUser(username string, limit, offset int) ([]*domain.Problem, error) {
+	return u.repo.ListForUser(username, limit, offset)
 }
 
 func (u *Usecase) GetByIDForUser(username, id string) (*domain.Problem, error) {

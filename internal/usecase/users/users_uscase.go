@@ -57,10 +57,10 @@ func (u *Usecase) UpdateProfile(ctx context.Context, profile *domain.UserProfile
 	return u.profileRepo.UpdateUser(profile)
 }
 
-// List returns all user profiles.
-func (u *Usecase) List(ctx context.Context) ([]*domain.UserProfile, error) {
+// List returns user profiles, paginated.
+func (u *Usecase) List(ctx context.Context, limit, offset int) ([]*domain.UserProfile, error) {
 	if u.profileRepo == nil {
 		return nil, nil
 	}
-	return u.profileRepo.ListUsers()
+	return u.profileRepo.ListUsers(limit, offset)
 }

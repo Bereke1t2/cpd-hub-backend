@@ -1,0 +1,1146 @@
+openapi: 3.0.3
+info:
+  title: CPD Hub Backend API
+  version: 1.0.0
+  description: >
+    Go/Gin backend for the CPD Hub mobile app. All /api routes except /auth/* require
+    a Bearer JWT. Field names match the Flutter models in ../CPD_HUB/lib.
+servers:
+  - url: http://localhost:8080/api
+security:
+  - bearerAuth: []
+paths:
+  /openapi.yaml:
+    get:
+      security: []
+      summary: OpenAPI specification
+      responses:
+        "200":
+          description: OK
+          content:
+            application/yaml:
+              schema:
+                type: string
+        "404":
+          description: openapi spec not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /docs:
+    get:
+      security: []
+      summary: Documentation landing page
+      responses:
+        "200":
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+  /healthz:
+    servers:
+      - url: http://localhost:8080
+    get:
+      security: []
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /readyz:
+    servers:
+      - url: http://localhost:8080
+    get:
+      security: []
+      summary: Readiness check
+      responses:
+        "200":
+          description: OK
+  /auth/login:
+    post:
+      security: []
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/signup:
+    post:
+      security: []
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: email or username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/refresh:
+    post:
+      security: []
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "400":
+          description: invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/me:
+    get:
+      summary: Current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /problems:
+    get:
+      summary: List problems
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Problem"
+  /problems/daily:
+    get:
+      summary: Daily problem
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /problems/{id}:
+    get:
+      summary: Get a problem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /problems/{id}/like:
+    post:
+      summary: Toggle like
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /problems/{id}/dislike:
+    post:
+      summary: Toggle dislike
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /problems/{id}/solve:
+    post:
+      summary: Mark solved
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Unmark solved
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /contests:
+    get:
+      summary: List contests
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contest"
+  /contests/{id}/participate:
+    post:
+      summary: Participate in contest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Unparticipate from contest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /contests/{id}/leaderboard:
+    get:
+      summary: Contest leaderboard
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: count
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: showUnofficial
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+        "400":
+          description: invalid contest id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users:
+    get:
+      summary: List users
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserProfile"
+  /users/profile/{username}:
+    get:
+      summary: Get a profile
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/profile/{username}/analytics/heatmap:
+    get:
+      summary: Profile heatmap
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HeatmapEntry"
+  /users/profile/{username}/analytics/rating-history:
+    get:
+      summary: Profile rating history
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RatingEntry"
+  /users/profile/{username}/attendance:
+    get:
+      summary: Profile attendance
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceEntry"
+  /users/profile/{username}/submissions:
+    get:
+      summary: Profile submissions
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Submission"
+  /activity:
+    get:
+      summary: Activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+  /info:
+    get:
+      summary: Announcements
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Info"
+  /bookmarks:
+    get:
+      summary: List bookmarks
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Problem"
+  /bookmarks/{problemId}:
+    post:
+      summary: Add bookmark
+      parameters:
+        - name: problemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Remove bookmark
+      parameters:
+        - name: problemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /consistency/streak:
+    get:
+      summary: Get streak
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Streak"
+    put:
+      summary: Save streak
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Streak"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Streak"
+        "400":
+          description: invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /consistency/goal:
+    get:
+      summary: Get goal
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+    put:
+      summary: Save goal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Goal"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+        "400":
+          description: invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /consistency/ladders:
+    get:
+      summary: Get ladders
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ladder"
+  /learning/topics:
+    get:
+      summary: Topic DAG
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Topic"
+  /learning/tracks:
+    get:
+      summary: Tracks
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Track"
+  /learning/lessons/{topicId}:
+    get:
+      summary: Lesson for a topic
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+        "404":
+          description: no lesson
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: not_found
+        message:
+          type: string
+          example: problem not found
+      required:
+        - error
+        - message
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+      required:
+        - success
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          format: password
+      required:
+        - email
+        - password
+    SignupRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        confirmPassword:
+          type: string
+          format: password
+      required:
+        - fullName
+        - email
+        - password
+        - confirmPassword
+    RefreshRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required:
+        - refreshToken
+    TokenPair:
+      type: object
+      properties:
+        token:
+          type: string
+        refreshToken:
+          type: string
+      required:
+        - token
+        - refreshToken
+    AuthUser:
+      type: object
+      properties:
+        username:
+          type: string
+        fullName:
+          type: string
+      required:
+        - username
+        - fullName
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/AuthUser"
+      required:
+        - token
+        - user
+    SocialLink:
+      type: object
+      properties:
+        platform:
+          type: string
+        url:
+          type: string
+        handle:
+          type: string
+    UserProfile:
+      type: object
+      properties:
+        username:
+          type: string
+        fullName:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+        rating:
+          type: integer
+        rank:
+          type: string
+        division:
+          type: string
+        solvedProblems:
+          type: integer
+        contributions:
+          type: integer
+        globalRank:
+          type: integer
+        attendedContestsCount:
+          type: integer
+        socialLinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/SocialLink"
+      required:
+        - username
+        - fullName
+    Problem:
+      type: object
+      properties:
+        id:
+          type: string
+        problemId:
+          type: string
+        title:
+          type: string
+        difficulty:
+          type: string
+        topicTags:
+          type: array
+          items:
+            type: string
+        numberOfLikes:
+          type: integer
+        numberOfDislikes:
+          type: integer
+        problemUrl:
+          type: string
+        isLiked:
+          type: boolean
+        isDisliked:
+          type: boolean
+        solved:
+          type: boolean
+        numberOfSolvedPeople:
+          type: integer
+      required:
+        - id
+        - problemId
+        - title
+    Contest:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        contestUrl:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        duration:
+          type: string
+        platform:
+          type: string
+        numberOfProblems:
+          type: integer
+        numberOfContestants:
+          type: integer
+        date:
+          type: string
+        isPast:
+          type: boolean
+        isParticipating:
+          type: boolean
+      required:
+        - id
+        - title
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        username:
+          type: string
+        rating:
+          type: integer
+        score:
+          type: integer
+        penalty:
+          type: integer
+        solvedCount:
+          type: integer
+        problemsSolved:
+          type: array
+          items:
+            type: string
+    HeatmapEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        solveCount:
+          type: integer
+    RatingEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        rating:
+          type: integer
+    AttendanceEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        status:
+          type: string
+    Submission:
+      type: object
+      properties:
+        id:
+          type: string
+        problemId:
+          type: string
+        problemTitle:
+          type: string
+        status:
+          type: string
+        language:
+          type: string
+        executionTime:
+          type: string
+        memoryUsed:
+          type: string
+        timestamp:
+          type: string
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        action:
+          type: string
+        type:
+          type: string
+        timestamp:
+          type: string
+    Info:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+    Streak:
+      type: object
+      properties:
+        current:
+          type: integer
+        longest:
+          type: integer
+        last_active_day:
+          type: string
+          nullable: true
+        freezes_available:
+          type: integer
+        active_days:
+          type: array
+          items:
+            type: string
+      required:
+        - current
+        - longest
+        - freezes_available
+        - active_days
+    Goal:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        target:
+          type: integer
+        progress:
+          type: integer
+        period_start:
+          type: string
+      required:
+        - id
+        - type
+        - target
+        - progress
+        - period_start
+    LadderRung:
+      type: object
+      properties:
+        problem_id:
+          type: string
+        rating:
+          type: integer
+        solved:
+          type: boolean
+        topic_id:
+          type: string
+          nullable: true
+    Ladder:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        from_rating:
+          type: integer
+        to_rating:
+          type: integer
+        rungs:
+          type: array
+          items:
+            $ref: "#/components/schemas/LadderRung"
+    Topic:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        summary:
+          type: string
+        difficulty:
+          type: integer
+        prerequisite_ids:
+          type: array
+          items:
+            type: string
+        problem_ids:
+          type: array
+          items:
+            type: string
+        reference_urls:
+          type: array
+          items:
+            type: string
+    Track:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        topic_ids:
+          type: array
+          items:
+            type: string
+        icon_name:
+          type: string
+    Lesson:
+      type: object
+      properties:
+        topic_id:
+          type: string
+        body:
+          type: string
+        key_ideas:
+          type: array
+          items:
+            type: string

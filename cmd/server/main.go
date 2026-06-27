@@ -90,6 +90,7 @@ func main() {
 		Contest:     contestUC,
 		Profile:     databases.NewProfileRepositoryDB(client),
 		Activity:    databases.NewActivityRepositoryDB(client),
+		Bookmark:    databases.NewBookmarkRepositoryDB(client),
 		Info:        databases.NewInfoRepositoryDB(client),
 		Consistency: databases.NewConsistencyRepositoryDB(client),
 		Learning:    databases.NewLearningRepositoryDB(client),

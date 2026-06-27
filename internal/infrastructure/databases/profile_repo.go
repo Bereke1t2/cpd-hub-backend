@@ -17,21 +17,22 @@ func NewProfileRepositoryDB(client *postgres.Client) *ProfileRepositoryDB {
 	return &ProfileRepositoryDB{client: client}
 }
 
-func (r *ProfileRepositoryDB) ListUsers() ([]*domain.UserProfile, error) {
+func (r *ProfileRepositoryDB) ListUsers(limit, offset int) ([]*domain.UserProfile, error) {
 	if r.client == nil || r.client.Pool == nil {
 		return nil, fmt.Errorf("no db client")
 	}
 	ctx := context.Background()
 	rows, err := r.client.Pool.Query(ctx, `
-		SELECT 
-			u.username, 
-			COALESCE(u.full_name,''), 
-			COALESCE(p.bio,''), 
-			COALESCE(p.avatar_url,''), 
+		SELECT
+			u.username,
+			COALESCE(u.full_name,''),
+			COALESCE(p.bio,''),
+			COALESCE(p.avatar_url,''),
 			COALESCE(p.rating, u.rating, 0),
 			(SELECT count(*) FROM user_problems WHERE username = u.username AND solved) AS solved_problems
-		FROM users u 
-		LEFT JOIN profiles p ON u.username = p.username`)
+		FROM users u
+		LEFT JOIN profiles p ON u.username = p.username
+		ORDER BY u.username LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return nil, err
 	}
