@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Env      string
-	CORS     []string
+	Server      ServerConfig
+	Database    DatabaseConfig
+	JWT         JWTConfig
+	Env         string
+	CORS        []string
+	AutoMigrate bool
 }
 
 type ServerConfig struct {
@@ -50,7 +51,8 @@ func Load() (*Config, error) {
 			TTL:    24 * time.Hour,
 			Issuer: "cpd-hub",
 		},
-		CORS: splitCSV(getenv("CORS_ORIGINS", "*")),
+		CORS:        splitCSV(getenv("CORS_ORIGINS", "*")),
+		AutoMigrate: getenv("AUTO_MIGRATE", "false") == "true",
 	}
 	if err := cfg.validate(); err != nil {
 		return nil, err

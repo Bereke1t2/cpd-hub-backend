@@ -68,8 +68,10 @@ func main() {
 	}
 	defer client.Close()
 
-	if err := postgres.RunMigrations(cfg.Database.URL, "migrations"); err != nil {
-		log.Fatalf("migrations failed: %v", err)
+	if cfg.AutoMigrate {
+		if err := postgres.RunMigrations(cfg.Database.URL, "migrations"); err != nil {
+			log.Fatalf("migrations failed: %v", err)
+		}
 	}
 
 	// Contests infrastructure
