@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 15 — copy to: internal/infrastructure/databases/articles_repo.go
 //
 // Read-only feed with optional source/tag filters and limit/offset pagination.
 // Tags are aggregated with array_agg to avoid an N+1. Errors are *domain.AppError.
+//
 package databases
 
 import (

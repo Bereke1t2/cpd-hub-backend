@@ -1,4 +1,5 @@
 //go:build ignore
+
 // Template for Phase 3 — replaces parts of: internal/infrastructure/security/jwt.go
 //
 // Access + refresh tokens with a `typ` claim guard so an access token can't be
@@ -9,6 +10,7 @@
 //	type UserRecord struct {
 //		Username, Email, FullName, PasswordHash string
 //	}
+//
 package security
 
 import (

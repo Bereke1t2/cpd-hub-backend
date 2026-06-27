@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 6 — copy to: internal/infrastructure/external/cached_contests.go
 //
 // Wraps the live Kontests/Codeforces fetch with a TTL cache + a graceful-
 // degradation ladder: fresh cache -> upstream -> stale cache -> DB list -> [].
+//
 package external
 
 import (

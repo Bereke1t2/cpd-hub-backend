@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 3 — copy to: internal/infrastructure/security/load_user.go
 //
 // LoadUser runs after AuthMiddleware. It reads the validated claims, loads the
 // caller's profile, and stashes it on the context so every handler can do
 // currentUsername(c) / current user.
+//
 package security
 
 import (

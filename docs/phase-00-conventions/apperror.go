@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 0 — copy to: internal/domain/apperror.go
 //
 // A small typed error model usecases return instead of bare errors. The delivery
 // layer maps *AppError -> HTTP status via a single helper (see response.go), so we
 // stop doing strings.Contains(err.Error(), "not found") all over the handlers.
+//
 package domain
 
 import (

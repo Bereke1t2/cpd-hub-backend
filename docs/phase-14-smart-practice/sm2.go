@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 14 — copy to: internal/usecase/practice/sm2.go
 //
 // The SuperMemo-2 scheduling algorithm. Pure, gin-free, sql-free, time-injectable
 // (pass `now` so it is deterministically unit-testable). The server recomputes the
 // schedule from the user's recall `quality` (0..5) so the client can't game it.
+//
 package practice
 
 import (

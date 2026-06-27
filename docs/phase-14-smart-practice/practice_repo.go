@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 14 — copy to: internal/infrastructure/databases/practice_repo.go
 //
 // CRUD for review cards and upsolves, every row keyed by (username, problem_id).
 // Errors are *domain.AppError. Dates round-trip as RFC3339 strings.
+//
 package databases
 
 import (

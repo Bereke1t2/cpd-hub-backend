@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 4 — copy to: internal/infrastructure/databases/user_problem_repo.go
 //
 // Per-user problem state via the user_problems join. Reads layer the caller's
 // liked/disliked/solved onto each problem; writes toggle the join row and keep
 // the denormalized counters on `problems` consistent inside a transaction.
+//
 package databases
 
 import (

@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 0 — copy to: internal/delivery/httpdelivery/response.go
 //
 // One place that shapes every HTTP response. Success returns the raw value the
 // Flutter client already parses (bare entity / array). Errors always use the
 // {error, message} shape the client reads today, derived from *domain.AppError.
+//
 package httpdelivery
 
 import (

@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 3 — copy to: internal/usecase/auth/auth_usecase.go
 //
 // Auth business rules live here (validation, handle derivation, token issuance).
 // The repository (postgres/auth_repo.go) becomes pure data access: lookups + insert.
+//
 package auth
 
 import (

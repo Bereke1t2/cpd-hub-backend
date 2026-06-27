@@ -1,7 +1,9 @@
 //go:build ignore
+
 // Template for Phase 15 — copy to: internal/domain/article.go
 //
 // First-party (and optionally cached external) articles feed. camelCase JSON per api.md §10.
+//
 package domain
 
 // Article is a CPD Hub editorial / tutorial, or a cached external blog entry.
@@ -9,7 +11,7 @@ type Article struct {
 	ID          string   `json:"id"`
 	Title       string   `json:"title"`
 	Author      string   `json:"author"`
-	Source      string   `json:"source"`   // "Codeforces" | "LeetCode" | "CPD Hub"
+	Source      string   `json:"source"` // "Codeforces" | "LeetCode" | "CPD Hub"
 	SourceURL   string   `json:"sourceUrl"`
 	Excerpt     string   `json:"excerpt"`
 	FullContent string   `json:"fullContent"`

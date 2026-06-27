@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 1 — copy to: internal/delivery/httpdelivery/server.go
 //
 // Wraps http.Server with sane timeouts and graceful shutdown so deploys/SIGTERM
 // drain in-flight requests instead of cutting them off.
+//
 package httpdelivery
 
 import (

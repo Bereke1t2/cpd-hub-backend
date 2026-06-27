@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 3 — copy to: internal/delivery/httpdelivery/validation.go
 //
 // Turns gin/validator binding errors into a single clean message, mapped to a
 // domain validation error (400). Use in auth handlers and any POST/PUT body.
+//
 package httpdelivery
 
 import (

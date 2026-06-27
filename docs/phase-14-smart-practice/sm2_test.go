@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 14 — copy to: internal/usecase/practice/sm2_test.go
 //
 // Unit test for the SM-2 scheduler. Runs with `go test ./internal/usecase/practice/...`.
 // Written inside the feature (not deferred to Phase 11) because scheduling math is the
 // one place a subtle bug silently corrupts every user's review cadence.
+//
 package practice
 
 import (

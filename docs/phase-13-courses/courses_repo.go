@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 13 — copy to: internal/infrastructure/databases/courses_repo.go
 //
 // Loads the course tree in flat ordered queries (no N+1) and overlays the caller's
 // lesson completion from user_lesson_progress. Errors are *domain.AppError.
+//
 package databases
 
 import (

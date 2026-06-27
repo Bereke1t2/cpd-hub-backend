@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 8 — reference snippet for: cmd/seed (topic graph + acyclicity)
 //
 // Author the curriculum as data, then assert it's a DAG before inserting so a bad
 // prerequisite edge can't ship and hang the client's path engine.
+//
 package main
 
 import "fmt"
