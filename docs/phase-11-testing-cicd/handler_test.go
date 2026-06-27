@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 11 — copy to: internal/delivery/httpdelivery/handler_test.go
 //
 // Handler tests with httptest + a mock repo. Guards the Phase-1 fix: a successful
 // like must return 200, not 500.
+//
 package httpdelivery
 
 import (
@@ -19,14 +21,18 @@ type mockProblemRepo struct {
 	liked   string
 }
 
-func (m *mockProblemRepo) ListForUser(string) ([]*domain.Problem, error)          { return nil, nil }
-func (m *mockProblemRepo) GetByIDForUser(string, string) (*domain.Problem, error) { return &domain.Problem{}, nil }
-func (m *mockProblemRepo) GetDailyForUser(string) (*domain.Problem, error)        { return &domain.Problem{}, nil }
-func (m *mockProblemRepo) Like(_ , id string) error                               { m.liked = id; return m.likeErr }
-func (m *mockProblemRepo) Dislike(string, string) error                           { return nil }
-func (m *mockProblemRepo) MarkSolved(string, string) error                        { return nil }
-func (m *mockProblemRepo) UnmarkSolved(string, string) error                      { return nil }
-func (m *mockProblemRepo) CountSolvers(string) (int, error)                       { return 0, nil }
+func (m *mockProblemRepo) ListForUser(string) ([]*domain.Problem, error) { return nil, nil }
+func (m *mockProblemRepo) GetByIDForUser(string, string) (*domain.Problem, error) {
+	return &domain.Problem{}, nil
+}
+func (m *mockProblemRepo) GetDailyForUser(string) (*domain.Problem, error) {
+	return &domain.Problem{}, nil
+}
+func (m *mockProblemRepo) Like(_, id string) error           { m.liked = id; return m.likeErr }
+func (m *mockProblemRepo) Dislike(string, string) error      { return nil }
+func (m *mockProblemRepo) MarkSolved(string, string) error   { return nil }
+func (m *mockProblemRepo) UnmarkSolved(string, string) error { return nil }
+func (m *mockProblemRepo) CountSolvers(string) (int, error)  { return 0, nil }
 
 func newTestHandler(repo domain.ProblemRepository) *gin.Engine {
 	gin.SetMode(gin.TestMode)

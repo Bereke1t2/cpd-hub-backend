@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 11 — copy to: internal/usecase/consistency/consistency_test.go
 //
 // Table-driven tests for the pure streak math. No DB: a fake repo returns canned
 // active days. Demonstrates the pattern for every usecase test.
+//
 package consistency
 
 import (
@@ -19,13 +21,13 @@ type fakeRepo struct {
 	savedTo *domain.Streak
 }
 
-func (f *fakeRepo) ActiveDays(string) ([]string, error)        { return f.days, nil }
-func (f *fakeRepo) GetStreak(string) (*domain.Streak, error)   { return f.streak, nil }
-func (f *fakeRepo) SaveStreak(_ string, s *domain.Streak) error { f.savedTo = s; return nil }
-func (f *fakeRepo) GetGoal(string) (*domain.Goal, error)       { return nil, nil }
-func (f *fakeRepo) SaveGoal(string, *domain.Goal) error        { return nil }
-func (f *fakeRepo) GetLadders(string) ([]*domain.Ladder, error) { return nil, nil }
-func (f *fakeRepo) SaveLadder(string, *domain.Ladder) error    { return nil }
+func (f *fakeRepo) ActiveDays(string) ([]string, error)          { return f.days, nil }
+func (f *fakeRepo) GetStreak(string) (*domain.Streak, error)     { return f.streak, nil }
+func (f *fakeRepo) SaveStreak(_ string, s *domain.Streak) error  { f.savedTo = s; return nil }
+func (f *fakeRepo) GetGoal(string) (*domain.Goal, error)         { return nil, nil }
+func (f *fakeRepo) SaveGoal(string, *domain.Goal) error          { return nil }
+func (f *fakeRepo) GetLadders(string) ([]*domain.Ladder, error)  { return nil, nil }
+func (f *fakeRepo) SaveLadder(string, *domain.Ladder) error      { return nil }
 func (f *fakeRepo) SolvedCountSince(string, string) (int, error) { return 0, nil }
 
 func TestGetStreak_Current(t *testing.T) {
