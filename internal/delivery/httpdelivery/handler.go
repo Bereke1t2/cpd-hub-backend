@@ -89,7 +89,7 @@ type handlerImpl struct {
 // NewHandler creates the handler and registers routes.
 func NewHandler(repos Repos, db *postgres.Client, corsOrigins []string) Handler {
 	g := gin.New()
-	g.Use(RecoveryJSON(), RequestID(), SecurityHeaders(), BodySizeLimit(1<<20))
+	g.Use(RecoveryJSON(), RequestID(), StructuredLogger(), Metrics(), SecurityHeaders(), BodySizeLimit(1<<20))
 
 	authUC := authuc.New(repos.Auth)
 	var recorder *activityuc.Recorder
@@ -107,6 +107,7 @@ func NewHandler(repos Repos, db *postgres.Client, corsOrigins []string) Handler 
 
 	g.GET("/healthz", h.Healthz)
 	g.GET("/readyz", h.Readyz)
+	g.GET("/metrics", MetricsHandler())
 
 	var authMiddleware gin.HandlerFunc
 	var loadUser gin.HandlerFunc

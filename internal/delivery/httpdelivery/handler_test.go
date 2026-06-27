@@ -3,6 +3,7 @@ package httpdelivery
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -136,5 +137,21 @@ func TestLikeProblem_Unauthorized(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestMetricsEndpointExposesPrometheusMetrics(t *testing.T) {
+	router := newTestRouter(&mockProblemRepo{})
+
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "http_requests_total") {
+		t.Fatalf("metrics body does not include http_requests_total:\n%s", body)
 	}
 }
