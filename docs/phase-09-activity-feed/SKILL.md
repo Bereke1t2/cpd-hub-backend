@@ -11,11 +11,11 @@ submissions, daily_solves) without tangling the handlers.
 ---
 
 ## Checklist
-- [ ] 9.1 Emit an activity row when a user solves/likes (event hook).
-- [ ] 9.2 Paginate `GET /activity` (newest first) — reuse the Phase-10 pagination helper.
-- [ ] 9.3 Bookmarks: `GET /api/bookmarks`, `POST/DELETE /api/bookmarks/:problemId`.
+- [x] 9.1 Emit an activity row when a user solves/likes (event hook).
+- [x] 9.2 Paginate `GET /activity` (newest first) — reuse the Phase-10 pagination helper.
+- [x] 9.3 Bookmarks: `GET /api/bookmarks`, `POST/DELETE /api/bookmarks/:problemId`.
 - [ ] 9.4 Info as CMS: keep `GET /info`; add admin create/update (optional, behind a role).
-- [ ] 9.5 Humanize activity timestamps for the client (`"2 min ago"`).
+- [x] 9.5 Humanize activity timestamps for the client (`"2 min ago"`).
 
 ## 9.1 Event hook
 The mobile home feed shows lines like *"abel solved 'Two Sum' in 3 min"*. Generate these. Add a minimal
@@ -57,9 +57,9 @@ Keep the real `created_at` for ordering; send the humanized string in `timestamp
 ---
 
 ## Definition of Done
-- [ ] Solving a problem produces an activity row that appears in `GET /activity`.
-- [ ] `GET /activity?limit=10` returns at most 10, newest first.
-- [ ] Bookmark add/remove works; `GET /bookmarks` returns the caller's bookmarked problems with correct
+- [x] Solving a problem produces an activity row that appears in `GET /activity`.
+- [x] `GET /activity?limit=10` returns at most 10, newest first.
+- [x] Bookmark add/remove works; `GET /bookmarks` returns the caller's bookmarked problems with correct
       per-user `solved`/`isLiked` state.
-- [ ] Activity `timestamp` is a fresh humanized string derived from `created_at`.
-- [ ] The solve handler stays thin — the activity/submission fan-out lives in the usecase.
+- [x] Activity `timestamp` is a fresh humanized string derived from `created_at`.
+- [x] The solve handler stays thin — the activity/submission fan-out lives in the usecase.

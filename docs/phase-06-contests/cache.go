@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 6 — copy to: internal/infrastructure/external/cache.go
 //
 // A tiny concurrency-safe TTL cache. Keeps the most recent good value per key and
 // can report whether the value is stale (for graceful-degradation fallbacks).
+//
 package external
 
 import (

@@ -10,12 +10,12 @@ failure 500 the screen, serve the fields the mobile **countdown** UI needs (`sta
 ---
 
 ## Checklist
-- [ ] 6.1 Wrap the Kontests client with an in-memory TTL cache.
-- [ ] 6.2 Graceful degradation: on upstream error, serve last-good cache or the DB list, never 500.
-- [ ] 6.3 Ensure `startTime` (RFC3339), `duration`, `isPast` are always set for the countdown.
-- [ ] 6.4 Per-user participation: `isParticipating` from a `contest_participants` join.
-- [ ] 6.5 Cache leaderboard responses (Codeforces standings) with a short TTL.
-- [ ] 6.6 Optional: background refresh worker that warms the cache every N minutes.
+- [x] 6.1 Wrap the Kontests client with an in-memory TTL cache.
+- [x] 6.2 Graceful degradation: on upstream error, serve last-good cache or the DB list, never 500.
+- [x] 6.3 Ensure `startTime` (RFC3339), `duration`, `isPast` are always set for the countdown.
+- [x] 6.4 Per-user participation: `isParticipating` from a `contest_participants` join.
+- [x] 6.5 Cache leaderboard responses (Codeforces standings) with a short TTL.
+- [x] 6.6 Optional: background refresh worker that warms the cache every N minutes.
 
 ---
 
@@ -68,8 +68,8 @@ Stop it on shutdown via context (the Phase-1 graceful shutdown passes a cancelab
 ---
 
 ## Definition of Done
-- [ ] `GET /contests` is a cache hit on the second call within the TTL (verify via timing/logs).
-- [ ] Simulated upstream failure (point the client at a bad URL) still returns 200 with stale/DB data.
-- [ ] Every contest in the response has a non-zero `startTime` and a correct `isPast`.
-- [ ] Leaderboard requests for the same contest within the TTL don't re-hit Codeforces.
-- [ ] (If done) `isParticipating` reflects the caller's participation; participate/unparticipate works.
+- [x] `GET /contests` is a cache hit on the second call within the TTL (verify via timing/logs).
+- [x] Simulated upstream failure (point the client at a bad URL) still returns 200 with stale/DB data.
+- [x] Every contest in the response has a non-zero `startTime` and a correct `isPast`.
+- [x] Leaderboard requests for the same contest within the TTL don't re-hit Codeforces.
+- [x] (If done) `isParticipating` reflects the caller's participation; participate/unparticipate works.

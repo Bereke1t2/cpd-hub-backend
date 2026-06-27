@@ -1,4 +1,5 @@
 //go:build ignore
+
 // Template for Phase 9 — copy to: internal/domain/bookmark.go + a repo in databases.
 //
 // Backs the mobile bookmarks cubit. GET returns the caller's bookmarked problems

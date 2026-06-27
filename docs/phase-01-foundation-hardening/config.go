@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 1 — copy to: internal/infrastructure/config/config.go
 //
 // Typed, validated configuration. Fails fast with a clear message instead of
 // crashing deep inside the app when a required value is missing.
+//
 package config
 
 import (
@@ -21,7 +23,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Address      string        // e.g. ":8080"
+	Address      string // e.g. ":8080"
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
@@ -32,9 +34,9 @@ type DatabaseConfig struct {
 }
 
 type JWTConfig struct {
-	Secret   string
-	TTL      time.Duration // access token lifetime
-	Issuer   string
+	Secret string
+	TTL    time.Duration // access token lifetime
+	Issuer string
 }
 
 const insecureDefaultSecret = "dev-secret-change-me"

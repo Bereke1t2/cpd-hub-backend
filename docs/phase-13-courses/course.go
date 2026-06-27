@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 13 — copy to: internal/domain/course.go
 //
 // Courses feature. Entities mirror api.md §8 and the Flutter CourseModel (camelCase).
 // `Completed` on a lesson is per-user and computed at read time from user_lesson_progress —
 // it is NOT a stored column on course_lessons.
+//
 package domain
 
 // Course is a structured learning module with ordered modules and lessons.

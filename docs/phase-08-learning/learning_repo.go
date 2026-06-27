@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 8 — copy to: internal/infrastructure/databases/learning_repo.go
 //
 // Assembles each topic's arrays from edge tables in a few batched queries (no
 // N+1). Groups edges in Go after a single scan per edge table.
+//
 package databases
 
 import (

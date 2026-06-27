@@ -32,12 +32,12 @@ PUT /api/consistency/ladders/:id body Ladder → Ladder  (saveLadder override; o
 ---
 
 ## Checklist
-- [ ] 7.1 Domain entities + repository interface (`internal/domain/consistency.go`).
-- [ ] 7.2 Migration `0008_consistency` (`streaks`, `goals`, `ladders` + `ladder_rungs`, `user_ladder_solved`).
-- [ ] 7.3 Repository (`consistency_repo.go`).
-- [ ] 7.4 Usecase: derive/recompute streak from `daily_solves`; default goal for new users.
-- [ ] 7.5 Handlers + routes + wire repo in `main.go`.
-- [ ] 7.6 Seed the base ladders (Div 2 A/B ladders, etc.).
+- [x] 7.1 Domain entities + repository interface (`internal/domain/consistency.go`).
+- [x] 7.2 Migration `0008_consistency` (`streaks`, `goals`, `ladders` + `ladder_rungs`, `user_ladder_solved`).
+- [x] 7.3 Repository (`consistency_repo.go`).
+- [x] 7.4 Usecase: derive/recompute streak from `daily_solves`; default goal for new users.
+- [x] 7.5 Handlers + routes + wire repo in `main.go`.
+- [x] 7.6 Seed the base ladders (Div 2 A/B ladders, etc.).
 
 ## 7.1 Domain
 Copy [`consistency.go`](./consistency.go) to `internal/domain/consistency.go`. JSON tags are snake_case to
@@ -77,10 +77,10 @@ interface, wire in `main.go`. Seed a couple of base ladders in `cmd/seed` so `GE
 ---
 
 ## Definition of Done
-- [ ] `GET /consistency/streak` returns a streak computed from the caller's real solves; solving today bumps
+- [x] `GET /consistency/streak` returns a streak computed from the caller's real solves; solving today bumps
       `current`.
-- [ ] A new user gets a sensible default goal (`weekly-problems`, target 5) without a 404.
-- [ ] `GET /consistency/goal` shows `progress` = problems solved this period.
-- [ ] `GET /consistency/ladders` returns base ladders with the caller's `solved` overlaid per rung.
-- [ ] All JSON field names match the Flutter models (snake_case) — the app's mock source can be swapped for
+- [x] A new user gets a sensible default goal (`weekly-problems`, target 5) without a 404.
+- [x] `GET /consistency/goal` shows `progress` = problems solved this period.
+- [x] `GET /consistency/ladders` returns base ladders with the caller's `solved` overlaid per rung.
+- [x] All JSON field names match the Flutter models (snake_case) — the app's mock source can be swapped for
       the remote one with no model changes.

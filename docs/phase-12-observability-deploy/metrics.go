@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 12 — copy to: internal/delivery/httpdelivery/metrics.go
 //
 // Prometheus request count + latency histogram, plus the /metrics endpoint.
 // Requires: go get github.com/prometheus/client_golang/prometheus{,/promhttp}
+//
 package httpdelivery
 
 import (

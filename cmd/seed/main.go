@@ -14,6 +14,44 @@ import (
 	"github.com/bereket/cpd-hub-backend/internal/infrastructure/postgres"
 )
 
+func assertAcyclic(prereqs map[string][]string) error {
+	const (
+		white = 0 // unvisited
+		gray  = 1 // on the current DFS stack
+		black = 2 // done
+	)
+	color := map[string]int{}
+	for n := range prereqs {
+		color[n] = white
+	}
+
+	var visit func(n string) error
+	visit = func(n string) error {
+		color[n] = gray
+		for _, p := range prereqs[n] {
+			switch color[p] {
+			case gray:
+				return fmt.Errorf("prerequisite cycle through %q -> %q", n, p)
+			case white:
+				if err := visit(p); err != nil {
+					return err
+				}
+			}
+		}
+		color[n] = black
+		return nil
+	}
+
+	for n := range prereqs {
+		if color[n] == white {
+			if err := visit(n); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func main() {
 	dsnFlag := flag.String("dsn", "", "Postgres DSN (overrides DATABASE_URL env)")
 	seedPath := flag.String("seed", "cmd/seed/seed.sql", "Path to a seed .sql file or a directory of .sql files (executed in alphabetical order)")
@@ -70,6 +108,23 @@ func main() {
 			}
 		}
 		fmt.Println("all seeds applied successfully")
+
+		// Verify acyclicity after seed
+		rows, err := client.Pool.Query(ctx, "SELECT topic_id, prerequisite_id FROM topic_prerequisites")
+		if err == nil {
+			defer rows.Close()
+			graph := map[string][]string{}
+			for rows.Next() {
+				var tid, pid string
+				if err := rows.Scan(&tid, &pid); err == nil {
+					graph[tid] = append(graph[tid], pid)
+				}
+			}
+			if err := assertAcyclic(graph); err != nil {
+				log.Fatalf("Critical: topic graph has a cycle! %v", err)
+			}
+			fmt.Println("Graph acyclicity verified.")
+		}
 		return
 	}
 
@@ -84,4 +139,21 @@ func main() {
 		log.Fatalf("failed to execute seed: %v", err)
 	}
 	fmt.Println("seed applied successfully")
+
+	// Verify acyclicity after seed
+	rows, err := client.Pool.Query(ctx, "SELECT topic_id, prerequisite_id FROM topic_prerequisites")
+	if err == nil {
+		defer rows.Close()
+		graph := map[string][]string{}
+		for rows.Next() {
+			var tid, pid string
+			if err := rows.Scan(&tid, &pid); err == nil {
+				graph[tid] = append(graph[tid], pid)
+			}
+		}
+		if err := assertAcyclic(graph); err != nil {
+			log.Fatalf("Critical: topic graph has a cycle! %v", err)
+		}
+		fmt.Println("Graph acyclicity verified.")
+	}
 }

@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 12 — copy to: internal/delivery/httpdelivery/logger.go
 //
 // Structured JSON access log, one line per request, including the request_id set
 // by the Phase-1 RequestID middleware. Add to the middleware stack in place of
 // gin.Logger().
+//
 package httpdelivery
 
 import (

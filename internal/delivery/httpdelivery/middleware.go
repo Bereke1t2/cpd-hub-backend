@@ -55,6 +55,23 @@ func CORS(allowedOrigins []string) gin.HandlerFunc {
 	}
 }
 
+// SecurityHeaders sets conservative security headers on every response.
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("X-Content-Type-Options", "nosniff")
+		c.Writer.Header().Set("X-Frame-Options", "DENY")
+		c.Next()
+	}
+}
+
+// BodySizeLimit caps request bodies at maxBytes to prevent memory exhaustion.
+func BodySizeLimit(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		c.Next()
+	}
+}
+
 func newRequestID() string {
 	const hextable = "0123456789abcdef"
 	b := make([]byte, 16)

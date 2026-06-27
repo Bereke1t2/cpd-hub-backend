@@ -1,11 +1,14 @@
 //go:build ignore
+
 // Template for Phase 2 — copy to: cmd/migrate/main.go
 //
 // Thin CLI around golang-migrate so deploys/Makefile can run migrations as a
 // discrete step. Usage:
-//   go run ./cmd/migrate -database "$DATABASE_URL" -dir migrations up
-//   go run ./cmd/migrate -database "$DATABASE_URL" -dir migrations down 1
-//   go run ./cmd/migrate -database "$DATABASE_URL" -dir migrations version
+//
+//	go run ./cmd/migrate -database "$DATABASE_URL" -dir migrations up
+//	go run ./cmd/migrate -database "$DATABASE_URL" -dir migrations down 1
+//	go run ./cmd/migrate -database "$DATABASE_URL" -dir migrations version
+//
 package main
 
 import (

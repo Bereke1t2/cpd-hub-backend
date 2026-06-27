@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 10 — copy to: internal/delivery/httpdelivery/ratelimit.go
 //
 // In-memory token-bucket rate limiter keyed by a caller identity (IP or username).
 // Swap the store for Redis when you run more than one instance.
+//
 package httpdelivery
 
 import (

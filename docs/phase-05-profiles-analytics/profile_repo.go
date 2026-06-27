@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 5 — copy to: internal/infrastructure/databases/profile_repo.go
 //
 // Real profile analytics from the Phase-2 tables. Each list method returns an
 // empty slice (not an error) when there's no data, so the client renders an
 // empty heatmap/list instead of getting a 500.
+//
 package databases
 
 import (

@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 1 — copy to: internal/delivery/httpdelivery/health.go
 //
 // Liveness and readiness probes. Register OUTSIDE the /api auth group so probes
 // don't need a token. Pass the postgres client into the handler for readiness.
+//
 package httpdelivery
 
 import (

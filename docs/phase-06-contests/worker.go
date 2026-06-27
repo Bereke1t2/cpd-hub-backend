@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 6 — copy to: internal/infrastructure/external/worker.go
 //
 // Optional background worker that warms the contests cache so user requests are
 // always cache hits. Start it from main.go with the server's cancelable context.
+//
 package external
 
 import (

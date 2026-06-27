@@ -1,7 +1,9 @@
 //go:build ignore
+
 // Template for Phase 8 — copy to: internal/domain/learning.go
 //
 // snake_case JSON to match ../CPD_HUB/lib/features/learning/data/models/.
+//
 package domain
 
 type Topic struct {

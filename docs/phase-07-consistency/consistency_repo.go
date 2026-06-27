@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 7 — copy to: internal/infrastructure/databases/consistency_repo.go
 //
 // Persists streak/goal snapshots and serves the base ladders with the caller's
 // solved overlay pulled from user_problems (so solving anywhere lights the rung).
+//
 package databases
 
 import (

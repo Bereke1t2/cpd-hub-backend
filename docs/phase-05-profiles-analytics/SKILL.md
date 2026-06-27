@@ -11,11 +11,11 @@ from `daily_solves`.
 ---
 
 ## Checklist
-- [ ] 5.1 Implement the four analytics repo methods against the new tables.
-- [ ] 5.2 Compute profile aggregates in `GetProfile`.
-- [ ] 5.3 Record submissions when a solve happens (link to Phase 4 / Phase 9 events).
-- [ ] 5.4 Seed analytics rows so dev profiles render.
-- [ ] 5.5 Remove the static fallbacks from the handlers.
+- [x] 5.1 Implement the four analytics repo methods against the new tables.
+- [x] 5.2 Compute profile aggregates in `GetProfile`.
+- [x] 5.3 Record submissions when a solve happens (link to Phase 4 / Phase 9 events).
+- [x] 5.4 Seed analytics rows so dev profiles render.
+- [x] 5.5 Remove the static fallbacks from the handlers.
 
 ---
 
@@ -66,9 +66,9 @@ parses.
 ---
 
 ## Definition of Done
-- [ ] Profile heatmap reflects the caller's actual `daily_solves` (verify by solving a problem then GETting
+- [x] Profile heatmap reflects the caller's actual `daily_solves` (verify by solving a problem then GETting
       the heatmap).
-- [ ] Rating history, attendance, submissions come from their tables; empty data returns `[]`, not 500.
-- [ ] `GET /users/profile/:username` includes a real `solvedProblems` count.
-- [ ] No hardcoded `2026-02-01` sample rows remain in `handler.go`.
-- [ ] Dev seed makes the demo profile render with a populated heatmap.
+- [x] Rating history, attendance, submissions come from their tables; empty data returns `[]`, not 500.
+- [x] `GET /users/profile/:username` includes a real `solvedProblems` count.
+- [x] No hardcoded `2026-02-01` sample rows remain in `handler.go`.
+- [x] Dev seed makes the demo profile render with a populated heatmap.

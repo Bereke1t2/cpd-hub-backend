@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 2 — copy to: internal/infrastructure/postgres/migrate.go
 //
 // Applies file-based migrations using golang-migrate. Called from cmd/server on
 // boot (behind AUTO_MIGRATE) and from cmd/migrate as a CLI.
+//
 package postgres
 
 import (

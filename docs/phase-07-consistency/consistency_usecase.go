@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 7 — copy to: internal/usecase/consistency/consistency_usecase.go
 //
 // Streak and goal progress are DERIVED from real solve days, so the server is the
 // source of truth even if the client never PUTs. Pure logic; no gin, no SQL.
+//
 package consistency
 
 import (

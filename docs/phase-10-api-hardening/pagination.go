@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 10 — copy to: internal/delivery/httpdelivery/pagination.go
 //
 // Parses ?limit=&offset= with safe defaults and a hard cap. Pass the result into
 // repo List queries as LIMIT/OFFSET.
+//
 package httpdelivery
 
 import (

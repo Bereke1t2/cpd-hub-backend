@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 14 — copy to: internal/domain/practice.go
 //
 // Smart Practice: spaced-repetition review queue (SM-2) + contest upsolves.
 // JSON tags are snake_case to match api.md §9 and the Flutter ReviewItemModel/UpsolveItemModel.
+//
 package domain
 
 // ReviewItem is one SM-2 spaced-repetition card, scoped to a user.

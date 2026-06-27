@@ -1,8 +1,10 @@
 //go:build ignore
+
 // Template for Phase 7 — copy to: internal/delivery/httpdelivery/consistency_handler.go
 //
 // Thin handlers delegating to the consistency usecase. currentUsername(c) comes
 // from the loadUser middleware (Phase 3).
+//
 package httpdelivery
 
 import (

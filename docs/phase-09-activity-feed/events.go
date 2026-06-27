@@ -1,9 +1,11 @@
 //go:build ignore
+
 // Template for Phase 9 — copy to: internal/usecase/activity/events.go
 //
 // A single place that turns a user action into its side effects (activity row,
 // and for solves the submission + heatmap rows). Call from the problems usecase
 // after a successful action — NOT from the repository.
+//
 package activity
 
 import (

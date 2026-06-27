@@ -1,7 +1,9 @@
 //go:build ignore
+
 // Template for Phase 1 — copy to: internal/delivery/httpdelivery/middleware.go
 //
 // Cross-cutting gin middleware: panic recovery as JSON, request IDs, CORS.
+//
 package httpdelivery
 
 import (
