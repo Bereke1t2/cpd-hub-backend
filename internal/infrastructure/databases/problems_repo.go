@@ -107,7 +107,7 @@ func (r *ProblemsRepositoryDB) Like(username, id string) error {
 	if err != nil {
 		return domain.ErrInternal("").Wrap(err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// ensure problem exists
 	var exists bool
@@ -148,7 +148,7 @@ func (r *ProblemsRepositoryDB) Dislike(username, id string) error {
 	if err != nil {
 		return domain.ErrInternal("").Wrap(err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// ensure problem exists
 	var exists bool
@@ -189,7 +189,7 @@ func (r *ProblemsRepositoryDB) MarkSolved(username, id string) error {
 	if err != nil {
 		return domain.ErrInternal("").Wrap(err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// fetch title for the submission record
 	var title string

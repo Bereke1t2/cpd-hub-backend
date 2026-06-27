@@ -36,9 +36,3 @@ func respondError(c *gin.Context, err error) {
 	})
 	// optional: log ae.Err here (the wrapped cause) once structured logging lands (Phase 12)
 }
-
-// respondErrorStatus is for handler-level errors that aren't AppErrors yet
-// (e.g. a bad path param) — explicit status + message.
-func respondErrorStatus(c *gin.Context, status int, code, message string) {
-	c.JSON(status, gin.H{"error": code, "message": message})
-}
