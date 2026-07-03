@@ -226,3 +226,11 @@ ON CONFLICT (id) DO UPDATE SET
   inline_text = EXCLUDED.inline_text,
   duration_sec = EXCLUDED.duration_sec,
   ord = EXCLUDED.ord;
+
+-- ------------------------------------------------------------------
+-- Smart Practice
+-- ------------------------------------------------------------------
+INSERT INTO review_items (username, problem_id, due_date, interval, ease, repetitions) VALUES
+  ('alice', 'p1', NOW() - INTERVAL '1 day', 1, 2.5, 0),
+  ('alice', 'dp1', NOW() + INTERVAL '3 days', 6, 2.4, 2)
+ON CONFLICT (username, problem_id) DO NOTHING;
