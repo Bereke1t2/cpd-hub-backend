@@ -96,6 +96,9 @@ func main() {
 		Info:        databases.NewInfoRepositoryDB(client),
 		Consistency: databases.NewConsistencyRepositoryDB(client),
 		Learning:    databases.NewLearningRepositoryDB(client),
+		Course:      databases.NewCoursesRepositoryDB(client),
+		Practice:    databases.NewPracticeRepositoryDB(client),
+		Article:     databases.NewArticlesRepositoryDB(client),
 	}
 
 	h := httpdelivery.NewHandler(repos, client, cfg.CORS)
