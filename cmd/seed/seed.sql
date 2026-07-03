@@ -234,3 +234,8 @@ INSERT INTO review_items (username, problem_id, due_date, interval, ease, repeti
   ('alice', 'p1', NOW() - INTERVAL '1 day', 1, 2.5, 0),
   ('alice', 'dp1', NOW() + INTERVAL '3 days', 6, 2.4, 2)
 ON CONFLICT (username, problem_id) DO NOTHING;
+
+INSERT INTO upsolve_items (username, problem_id, contest_id, contest_title, problem_title, resolved) VALUES
+  ('alice', 'p5', 'c2', 'Weekly Challenge #45', 'Longest Increasing Subsequence', false),
+  ('alice', 'p24', 'c3', 'Monthly Marathon', 'Word Ladder', true)
+ON CONFLICT (username, problem_id) DO NOTHING;
