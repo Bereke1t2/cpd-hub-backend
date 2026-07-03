@@ -41,6 +41,9 @@ func loadDotEnv(path string) {
 			}
 		}
 		if key != "" {
+			if _, exists := os.LookupEnv(key); exists {
+				continue
+			}
 			os.Setenv(key, val)
 		}
 	}
