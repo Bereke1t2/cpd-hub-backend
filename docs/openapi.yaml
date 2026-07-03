@@ -746,6 +746,244 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /courses:
+    get:
+      summary: List courses
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+  /courses/{id}:
+    get:
+      summary: Get course
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+        "404":
+          description: course not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /courses/{courseId}/lessons/{lessonId}/complete:
+    post:
+      summary: Complete lesson
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: lessonId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonCompletion"
+        "404":
+          description: lesson not found in course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /practice/review-queue:
+    get:
+      summary: Review queue
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewItem"
+    post:
+      summary: Add review item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewItem"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewItem"
+        "400":
+          description: invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /practice/review-queue/{problemId}:
+    put:
+      summary: Update review item
+      parameters:
+        - name: problemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewItem"
+        "404":
+          description: review item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete review item
+      parameters:
+        - name: problemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: review item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /practice/upsolves:
+    get:
+      summary: List upsolves
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UpsolveItem"
+    post:
+      summary: Add upsolve
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsolveItem"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpsolveItem"
+        "400":
+          description: invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /practice/upsolves/{problemId}:
+    put:
+      summary: Toggle upsolve resolved
+      parameters:
+        - name: problemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resolved:
+                  type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpsolveItem"
+        "404":
+          description: upsolve not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /articles:
+    get:
+      summary: Articles feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [codeforces, leetcode, cpdhub]
+        - name: tag
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Article"
 components:
   securitySchemes:
     bearerAuth:
@@ -1144,3 +1382,134 @@ components:
           type: array
           items:
             type: string
+    Course:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        level:
+          type: string
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseModule"
+    CourseModule:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        lessons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourseLesson"
+    CourseLesson:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        kind:
+          type: string
+          enum: [video, article, pdf]
+        contentUrl:
+          type: string
+        inlineText:
+          type: string
+        durationSec:
+          type: integer
+        completed:
+          type: boolean
+    LessonCompletion:
+      type: object
+      properties:
+        lessonId:
+          type: string
+        completed:
+          type: boolean
+      required:
+        - lessonId
+        - completed
+    ReviewItem:
+      type: object
+      properties:
+        problem_id:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        interval:
+          type: integer
+        ease:
+          type: number
+          format: double
+        repetitions:
+          type: integer
+      required:
+        - problem_id
+    ReviewUpdateRequest:
+      type: object
+      properties:
+        problem_id:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+        interval:
+          type: integer
+        ease:
+          type: number
+          format: double
+        repetitions:
+          type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 5
+    UpsolveItem:
+      type: object
+      properties:
+        contest_id:
+          type: string
+        contest_title:
+          type: string
+        problem_id:
+          type: string
+        problem_title:
+          type: string
+        resolved:
+          type: boolean
+      required:
+        - problem_id
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        source:
+          type: string
+        sourceUrl:
+          type: string
+        excerpt:
+          type: string
+        fullContent:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+        rating:
+          type: integer
