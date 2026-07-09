@@ -27,6 +27,9 @@ type Repos struct {
 	Info        domain.InfoRepository
 	Consistency domain.ConsistencyRepository
 	Learning    domain.LearningRepository
+	Course      domain.CourseRepository
+	Practice    domain.PracticeRepository
+	Article     domain.ArticleRepository
 }
 
 // Handler is the interface to be implemented by an HTTP handler.
@@ -74,6 +77,20 @@ type Handler interface {
 	GetTopics(*gin.Context)
 	GetTracks(*gin.Context)
 	GetLesson(*gin.Context)
+
+	GetCourses(*gin.Context)
+	GetCourse(*gin.Context)
+	CompleteLesson(*gin.Context)
+
+	ListReviewQueue(*gin.Context)
+	AddReviewItem(*gin.Context)
+	UpdateReviewItem(*gin.Context)
+	DeleteReviewItem(*gin.Context)
+	ListUpsolves(*gin.Context)
+	AddUpsolve(*gin.Context)
+	UpdateUpsolve(*gin.Context)
+
+	GetArticles(*gin.Context)
 }
 
 // handlerImpl is the concrete implementation used here.
@@ -89,7 +106,7 @@ type handlerImpl struct {
 // NewHandler creates the handler and registers routes.
 func NewHandler(repos Repos, db *postgres.Client, corsOrigins []string) Handler {
 	g := gin.New()
-	g.Use(RecoveryJSON(), RequestID(), SecurityHeaders(), BodySizeLimit(1<<20))
+	g.Use(RecoveryJSON(), RequestID(), StructuredLogger(), Metrics(), SecurityHeaders(), BodySizeLimit(1<<20))
 
 	authUC := authuc.New(repos.Auth)
 	var recorder *activityuc.Recorder
@@ -107,6 +124,7 @@ func NewHandler(repos Repos, db *postgres.Client, corsOrigins []string) Handler 
 
 	g.GET("/healthz", h.Healthz)
 	g.GET("/readyz", h.Readyz)
+	g.GET("/metrics", MetricsHandler())
 
 	var authMiddleware gin.HandlerFunc
 	var loadUser gin.HandlerFunc
@@ -176,6 +194,20 @@ func (h *handlerImpl) RemoveBookmark(c *gin.Context)        { h.bookmarksRemove(
 func (h *handlerImpl) GetTopics(c *gin.Context) { h.learningTopics(c) }
 func (h *handlerImpl) GetTracks(c *gin.Context) { h.learningTracks(c) }
 func (h *handlerImpl) GetLesson(c *gin.Context) { h.learningLesson(c) }
+
+func (h *handlerImpl) GetCourses(c *gin.Context)      { h.coursesList(c) }
+func (h *handlerImpl) GetCourse(c *gin.Context)       { h.coursesGet(c) }
+func (h *handlerImpl) CompleteLesson(c *gin.Context)  { h.coursesCompleteLesson(c) }
+func (h *handlerImpl) ListReviewQueue(c *gin.Context) { h.practiceListReviewQueue(c) }
+func (h *handlerImpl) AddReviewItem(c *gin.Context)   { h.practiceAddReviewItem(c) }
+func (h *handlerImpl) UpdateReviewItem(c *gin.Context) {
+	h.practiceUpdateReviewItem(c)
+}
+func (h *handlerImpl) DeleteReviewItem(c *gin.Context) { h.practiceDeleteReviewItem(c) }
+func (h *handlerImpl) ListUpsolves(c *gin.Context)     { h.practiceListUpsolves(c) }
+func (h *handlerImpl) AddUpsolve(c *gin.Context)       { h.practiceAddUpsolve(c) }
+func (h *handlerImpl) UpdateUpsolve(c *gin.Context)    { h.practiceUpdateUpsolve(c) }
+func (h *handlerImpl) GetArticles(c *gin.Context)      { h.articlesList(c) }
 
 // apiProblem shapes a domain.Problem into the JSON the Flutter client expects.
 func apiProblem(p *domain.Problem) gin.H {

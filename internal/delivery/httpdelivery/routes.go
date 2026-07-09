@@ -115,4 +115,27 @@ func RegisterRoutes(r *gin.Engine, h Handler, auth gin.HandlerFunc, loadUser gin
 		learn.GET("/tracks", h.GetTracks)
 		learn.GET("/lessons/:topicId", h.GetLesson)
 	}
+
+	courses := protected.Group("/courses")
+	{
+		courses.GET("", h.GetCourses)
+		courses.GET("/:id", h.GetCourse)
+		courses.POST("/:courseId/lessons/:lessonId/complete", writeLimiter.Middleware(), h.CompleteLesson)
+	}
+
+	practice := protected.Group("/practice")
+	{
+		review := practice.Group("/review-queue")
+		review.GET("", h.ListReviewQueue)
+		review.POST("", writeLimiter.Middleware(), h.AddReviewItem)
+		review.PUT("/:problemId", writeLimiter.Middleware(), h.UpdateReviewItem)
+		review.DELETE("/:problemId", writeLimiter.Middleware(), h.DeleteReviewItem)
+
+		upsolves := practice.Group("/upsolves")
+		upsolves.GET("", h.ListUpsolves)
+		upsolves.POST("", writeLimiter.Middleware(), h.AddUpsolve)
+		upsolves.PUT("/:problemId", writeLimiter.Middleware(), h.UpdateUpsolve)
+	}
+
+	protected.GET("/articles", h.GetArticles)
 }

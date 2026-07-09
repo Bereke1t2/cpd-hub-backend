@@ -7,24 +7,24 @@
 -- =============================================================
 
 -- ------------------------------------------------------------------
--- Users  (password_hash left empty; use signup endpoint for real auth)
+-- Users  (password_hash intentionally blank; use signup endpoint for real auth)
 -- ------------------------------------------------------------------
-INSERT INTO users (username, full_name, rating, bio, avatar_url) VALUES
-  ('bereket', 'Bereket Lemma',  1750, 'Competitive programmer',          'https://example.com/avatar/bereket.png'),
-  ('alice',   'Alice Johnson',  1600, 'Loves algorithms and puzzles',    'https://example.com/avatar/alice.png'),
-  ('bob',     'Bob Smith',      1420, 'Backend engineer',                'https://example.com/avatar/bob.png'),
-  ('carol',   'Carol Nguyen',   1985, 'Speed coder',                     'https://example.com/avatar/carol.png'),
-  ('dave',    'Dave Lee',       1550, 'Math enthusiast',                 'https://example.com/avatar/dave.png'),
-  ('eve',     'Eve Turner',     1700, 'Open source contributor',         'https://example.com/avatar/eve.png'),
-  ('frank',   'Frank Zhao',     1300, 'Learning CP',                     'https://example.com/avatar/frank.png'),
-  ('grace',   'Grace Park',     2100, 'Competitive programmer & mentor', 'https://example.com/avatar/grace.png'),
-  ('heidi',   'Heidi Patel',    1800, 'Contest veteran',                 'https://example.com/avatar/heidi.png'),
-  ('ivan',    'Ivan Petrov',    1650, 'Algorithms fan',                  'https://example.com/avatar/ivan.png'),
-  ('judy',    'Judy Alvarez',   1480, 'Enjoys DP problems',              'https://example.com/avatar/judy.png'),
-  ('karen',   'Karen O''Neill', 1525, 'Fullstack dev',                   'https://example.com/avatar/karen.png'),
-  ('leo',     'Leo Martinez',   1370, 'New to competitive programming',  'https://example.com/avatar/leo.png'),
-  ('mia',     'Mia Chen',       1900, 'Problemsetter',                   'https://example.com/avatar/mia.png'),
-  ('nick',    'Nick Brown',     1200, 'Beginners',                       'https://example.com/avatar/nick.png')
+INSERT INTO users (username, full_name, password_hash, rating, bio, avatar_url) VALUES
+  ('bereket', 'Bereket Lemma',  '', 1750, 'Competitive programmer',          'https://example.com/avatar/bereket.png'),
+  ('alice',   'Alice Johnson',  '', 1600, 'Loves algorithms and puzzles',    'https://example.com/avatar/alice.png'),
+  ('bob',     'Bob Smith',      '', 1420, 'Backend engineer',                'https://example.com/avatar/bob.png'),
+  ('carol',   'Carol Nguyen',   '', 1985, 'Speed coder',                     'https://example.com/avatar/carol.png'),
+  ('dave',    'Dave Lee',       '', 1550, 'Math enthusiast',                 'https://example.com/avatar/dave.png'),
+  ('eve',     'Eve Turner',     '', 1700, 'Open source contributor',         'https://example.com/avatar/eve.png'),
+  ('frank',   'Frank Zhao',     '', 1300, 'Learning CP',                     'https://example.com/avatar/frank.png'),
+  ('grace',   'Grace Park',     '', 2100, 'Competitive programmer & mentor', 'https://example.com/avatar/grace.png'),
+  ('heidi',   'Heidi Patel',    '', 1800, 'Contest veteran',                 'https://example.com/avatar/heidi.png'),
+  ('ivan',    'Ivan Petrov',    '', 1650, 'Algorithms fan',                  'https://example.com/avatar/ivan.png'),
+  ('judy',    'Judy Alvarez',   '', 1480, 'Enjoys DP problems',              'https://example.com/avatar/judy.png'),
+  ('karen',   'Karen O''Neill', '', 1525, 'Fullstack dev',                   'https://example.com/avatar/karen.png'),
+  ('leo',     'Leo Martinez',   '', 1370, 'New to competitive programming',  'https://example.com/avatar/leo.png'),
+  ('mia',     'Mia Chen',       '', 1900, 'Problemsetter',                   'https://example.com/avatar/mia.png'),
+  ('nick',    'Nick Brown',     '', 1200, 'Beginners',                       'https://example.com/avatar/nick.png')
 ON CONFLICT (username) DO NOTHING;
 
 -- ------------------------------------------------------------------
@@ -192,3 +192,50 @@ INSERT INTO ladder_rungs (ladder_id, problem_id, rating, topic_id, ord) VALUES
   ('ladder-1400', 'p4',  1300, 'dp',             1),
   ('ladder-1400', 'p5',  1400, 'graphs',         2)
 ON CONFLICT (ladder_id, problem_id) DO NOTHING;
+
+-- ------------------------------------------------------------------
+-- Courses
+-- ------------------------------------------------------------------
+INSERT INTO courses (id, title, summary, level) VALUES
+  ('cp-foundations', 'Competitive Programming Foundations', 'A practical starter course for implementation, search, and basic dynamic programming.', 'Beginner'),
+  ('dp-essentials', 'Dynamic Programming Essentials', 'Core DP patterns with short lessons and practice prompts.', 'Intermediate')
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  summary = EXCLUDED.summary,
+  level = EXCLUDED.level;
+
+INSERT INTO course_modules (id, course_id, title, ord) VALUES
+  ('cp-foundations-m1', 'cp-foundations', 'Setup and Implementation', 1),
+  ('cp-foundations-m2', 'cp-foundations', 'Search Patterns', 2),
+  ('dp-essentials-m1', 'dp-essentials', 'State Design', 1)
+ON CONFLICT (id) DO UPDATE SET
+  course_id = EXCLUDED.course_id,
+  title = EXCLUDED.title,
+  ord = EXCLUDED.ord;
+
+INSERT INTO course_lessons (id, module_id, title, kind, content_url, inline_text, duration_sec, ord) VALUES
+  ('cp-foundations-l1', 'cp-foundations-m1', 'Fast I/O and Templates', 'video', 'https://example.com/courses/cp-foundations/fast-io', '', 540, 1),
+  ('cp-foundations-l2', 'cp-foundations-m1', 'Implementation Checklist', 'article', 'https://example.com/courses/cp-foundations/checklist', 'Read constraints first, write invariants, and test edge cases before submitting.', 0, 2),
+  ('cp-foundations-l3', 'cp-foundations-m2', 'Binary Search on Answers', 'pdf', 'https://example.com/courses/cp-foundations/binary-search.pdf', '', 0, 1),
+  ('dp-essentials-l1', 'dp-essentials-m1', 'Choosing a DP State', 'article', 'https://example.com/courses/dp-essentials/state', 'A good state is small, complete, and cheap to transition from.', 0, 1)
+ON CONFLICT (id) DO UPDATE SET
+  module_id = EXCLUDED.module_id,
+  title = EXCLUDED.title,
+  kind = EXCLUDED.kind,
+  content_url = EXCLUDED.content_url,
+  inline_text = EXCLUDED.inline_text,
+  duration_sec = EXCLUDED.duration_sec,
+  ord = EXCLUDED.ord;
+
+-- ------------------------------------------------------------------
+-- Smart Practice
+-- ------------------------------------------------------------------
+INSERT INTO review_items (username, problem_id, due_date, interval, ease, repetitions) VALUES
+  ('alice', 'p1', NOW() - INTERVAL '1 day', 1, 2.5, 0),
+  ('alice', 'dp1', NOW() + INTERVAL '3 days', 6, 2.4, 2)
+ON CONFLICT (username, problem_id) DO NOTHING;
+
+INSERT INTO upsolve_items (username, problem_id, contest_id, contest_title, problem_title, resolved) VALUES
+  ('alice', 'p5', 'c2', 'Weekly Challenge #45', 'Longest Increasing Subsequence', false),
+  ('alice', 'p24', 'c3', 'Monthly Marathon', 'Word Ladder', true)
+ON CONFLICT (username, problem_id) DO NOTHING;

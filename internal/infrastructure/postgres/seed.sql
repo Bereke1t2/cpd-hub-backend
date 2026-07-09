@@ -12,24 +12,24 @@ CREATE TABLE IF NOT EXISTS contest_leaderboard (
   PRIMARY KEY (contest_id, rank)
 );
 
--- Users: note passwords are not stored here; use /api/auth/signup to create users with bcrypt.
-INSERT INTO users (username, full_name, rating, bio, avatar_url) VALUES
-('bereket', 'Bereket Lemma', 1750, 'Competitive programmer', 'https://example.com/avatar/bereket.png'),
-('alice', 'Alice Johnson', 1600, 'Loves algorithms and puzzles', 'https://example.com/avatar/alice.png'),
-('bob', 'Bob Smith', 1420, 'Backend engineer and problem solver', 'https://example.com/avatar/bob.png'),
-('carol', 'Carol Nguyen', 1985, 'Speed coder', 'https://example.com/avatar/carol.png'),
-('dave', 'Dave Lee', 1550, 'Math enthusiast', 'https://example.com/avatar/dave.png'),
-('eve', 'Eve Turner', 1700, 'Open source contributor', 'https://example.com/avatar/eve.png'),
-('frank', 'Frank Zhao', 1300, 'Learning CP', 'https://example.com/avatar/frank.png'),
-('grace', 'Grace Park', 2100, 'Competitive programmer & mentor', 'https://example.com/avatar/grace.png'),
-('heidi', 'Heidi Patel', 1800, 'Contest veteran', 'https://example.com/avatar/heidi.png'),
-('ivan', 'Ivan Petrov', 1650, 'Algorithms fan', 'https://example.com/avatar/ivan.png'),
-('judy', 'Judy Alvarez', 1480, 'Enjoys DP problems', 'https://example.com/avatar/judy.png'),
-('karen', 'Karen O''Neill', 1525, 'Fullstack dev', 'https://example.com/avatar/karen.png'),
-('leo', 'Leo Martinez', 1370, 'New to competitive programming', 'https://example.com/avatar/leo.png'),
-('mia', 'Mia Chen', 1900, 'Problemsetter', 'https://example.com/avatar/mia.png'),
-('nick', 'Nick Brown', 1200, 'Beginners', 'https://example.com/avatar/nick.png'),
-('dudu', 'dudu lulu', 1200, 'developer', 'https://example.com/avatar/dudu.png')
+-- Users: password_hash is intentionally blank; use /api/auth/signup to create users with bcrypt.
+INSERT INTO users (username, full_name, password_hash, rating, bio, avatar_url) VALUES
+('bereket', 'Bereket Lemma', '', 1750, 'Competitive programmer', 'https://example.com/avatar/bereket.png'),
+('alice', 'Alice Johnson', '', 1600, 'Loves algorithms and puzzles', 'https://example.com/avatar/alice.png'),
+('bob', 'Bob Smith', '', 1420, 'Backend engineer and problem solver', 'https://example.com/avatar/bob.png'),
+('carol', 'Carol Nguyen', '', 1985, 'Speed coder', 'https://example.com/avatar/carol.png'),
+('dave', 'Dave Lee', '', 1550, 'Math enthusiast', 'https://example.com/avatar/dave.png'),
+('eve', 'Eve Turner', '', 1700, 'Open source contributor', 'https://example.com/avatar/eve.png'),
+('frank', 'Frank Zhao', '', 1300, 'Learning CP', 'https://example.com/avatar/frank.png'),
+('grace', 'Grace Park', '', 2100, 'Competitive programmer & mentor', 'https://example.com/avatar/grace.png'),
+('heidi', 'Heidi Patel', '', 1800, 'Contest veteran', 'https://example.com/avatar/heidi.png'),
+('ivan', 'Ivan Petrov', '', 1650, 'Algorithms fan', 'https://example.com/avatar/ivan.png'),
+('judy', 'Judy Alvarez', '', 1480, 'Enjoys DP problems', 'https://example.com/avatar/judy.png'),
+('karen', 'Karen O''Neill', '', 1525, 'Fullstack dev', 'https://example.com/avatar/karen.png'),
+('leo', 'Leo Martinez', '', 1370, 'New to competitive programming', 'https://example.com/avatar/leo.png'),
+('mia', 'Mia Chen', '', 1900, 'Problemsetter', 'https://example.com/avatar/mia.png'),
+('nick', 'Nick Brown', '', 1200, 'Beginners', 'https://example.com/avatar/nick.png'),
+('dudu', 'dudu lulu', '', 1200, 'developer', 'https://example.com/avatar/dudu.png')
 ON CONFLICT (username) DO NOTHING;
 
 -- Profiles (lightweight) - mirror some users

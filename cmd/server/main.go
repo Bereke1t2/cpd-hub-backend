@@ -41,6 +41,9 @@ func loadDotEnv(path string) {
 			}
 		}
 		if key != "" {
+			if _, exists := os.LookupEnv(key); exists {
+				continue
+			}
 			os.Setenv(key, val)
 		}
 	}
@@ -68,8 +71,10 @@ func main() {
 	}
 	defer client.Close()
 
-	if err := postgres.RunMigrations(cfg.Database.URL, "migrations"); err != nil {
-		log.Fatalf("migrations failed: %v", err)
+	if cfg.AutoMigrate {
+		if err := postgres.RunMigrations(cfg.Database.URL, "migrations"); err != nil {
+			log.Fatalf("migrations failed: %v", err)
+		}
 	}
 
 	// Contests infrastructure
@@ -94,6 +99,9 @@ func main() {
 		Info:        databases.NewInfoRepositoryDB(client),
 		Consistency: databases.NewConsistencyRepositoryDB(client),
 		Learning:    databases.NewLearningRepositoryDB(client),
+		Course:      databases.NewCoursesRepositoryDB(client),
+		Practice:    databases.NewPracticeRepositoryDB(client),
+		Article:     databases.NewArticlesRepositoryDB(client),
 	}
 
 	h := httpdelivery.NewHandler(repos, client, cfg.CORS)
