@@ -4,6 +4,8 @@
 package httpdelivery
 
 import (
+	"fmt"
+
 	"github.com/bereket/cpd-hub-backend/internal/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -30,9 +32,13 @@ func respondSuccess(c *gin.Context) {
 //	if err != nil { respondError(c, err); return }
 func respondError(c *gin.Context, err error) {
 	ae := domain.AsAppError(err)
+	if ae.Err != nil {
+		fmt.Printf("[HTTP ERROR] code=%s status=%d message=%s cause=%v\n", ae.Code, ae.Status, ae.Message, ae.Err)
+	} else {
+		fmt.Printf("[HTTP ERROR] code=%s status=%d message=%s\n", ae.Code, ae.Status, ae.Message)
+	}
 	c.JSON(ae.Status, gin.H{
 		"error":   ae.Code,
 		"message": ae.Message,
 	})
-	// optional: log ae.Err here (the wrapped cause) once structured logging lands (Phase 12)
 }
