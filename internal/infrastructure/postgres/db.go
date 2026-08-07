@@ -29,6 +29,9 @@ func NewClient(ctx context.Context, dsn string) (*Client, error) {
 		return nil, fmt.Errorf("connect: %w", err)
 	}
 
+	// Ensure users table has email column if it was initialized from an earlier seed
+	_, _ = pool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;`)
+
 	return &Client{Pool: pool}, nil
 }
 
