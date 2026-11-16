@@ -78,6 +78,10 @@ func (uc *UseCase) Signup(req *domain.SignupRequest) (*domain.AuthResponse, erro
 		PasswordHash: hash,
 	}
 	if err := uc.store.Insert(rec); err != nil {
+		errStr := err.Error()
+		if strings.Contains(errStr, "23505") || strings.Contains(errStr, "duplicate key") || strings.Contains(errStr, "unique constraint") {
+			return nil, domain.ErrConflict("an account with this email or username already exists")
+		}
 		return nil, domain.ErrInternal("could not create user").Wrap(err)
 	}
 	return uc.issue(rec)
