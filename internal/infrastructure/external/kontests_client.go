@@ -170,28 +170,8 @@ func (k *KontestsClient) fetchCodeforces() ([]domain.Contest, error) {
 		contestURL := fmt.Sprintf("https://codeforces.com/contest/%d", c.Id)
 		id := fmt.Sprintf("codeforces-%d", c.Id)
 
-		// attempt to fetch standings with count=1 to get problems array and total participants when available
-		problemsCount := 0
-		participantCount := 0
-		standAPI := fmt.Sprintf("https://codeforces.com/api/contest.standings?contestId=%d&from=1&count=1&showUnofficial=false", c.Id)
-		if sresp, serr := k.client.Get(standAPI); serr == nil {
-			defer sresp.Body.Close()
-			if sresp.StatusCode == http.StatusOK {
-				b, _ := io.ReadAll(sresp.Body)
-				var tmp struct {
-					Status string `json:"status"`
-					Result struct {
-						Problems []interface{} `json:"problems"`
-						Rows     []interface{} `json:"rows"`
-					} `json:"result"`
-				}
-				if err := json.Unmarshal(b, &tmp); err == nil {
-					problemsCount = len(tmp.Result.Problems)
-					participantCount = len(tmp.Result.Rows)
-				}
-			}
-		}
-
+		// Upcoming contests (phase == BEFORE) do not have published problems or standings yet.
+		// Skipping contest.standings avoids socket leaks and protects against Codeforces 5 req/s rate limits.
 		out = append(out, domain.Contest{
 			ID:                  id,
 			Title:               c.Name,
@@ -199,8 +179,8 @@ func (k *KontestsClient) fetchCodeforces() ([]domain.Contest, error) {
 			StartTime:           st,
 			Duration:            durationStr,
 			Platform:            "Codeforces",
-			NumberOfProblems:    problemsCount,
-			NumberOfContestants: participantCount,
+			NumberOfProblems:    0,
+			NumberOfContestants: 0,
 			Date:                st.Format("Jan 2, 2006"),
 			IsPast:              false,
 			IsParticipating:     false,
